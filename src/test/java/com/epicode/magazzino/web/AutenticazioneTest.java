@@ -26,7 +26,7 @@ class AutenticazioneTest {
     void utentiNonAutenticatiSonoInviatiAlLogin() throws Exception {
         mvc.perform(get("/prodotti"))
                 .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrl("http://localhost/login"));
+                .andExpect(redirectedUrl("/login"));
     }
 
     @Test
@@ -62,6 +62,9 @@ class AutenticazioneTest {
         mvc.perform(get("/utenti").session((org.springframework.mock.web.MockHttpSession) sessione))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("admin")));
+        mvc.perform(get("/utenti/nuovo").session((org.springframework.mock.web.MockHttpSession) sessione))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Aggiungi utente")));
         mvc.perform(get("/prodotti").session((org.springframework.mock.web.MockHttpSession) sessione))
                 .andExpect(status().isForbidden());
     }

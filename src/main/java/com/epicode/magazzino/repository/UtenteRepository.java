@@ -23,4 +23,8 @@ public interface UtenteRepository extends JpaRepository<Utente, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select u from Utente u where u.username = :username")
     Optional<Utente> findByUsernameForUpdate(@Param("username") String username);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select u from Utente u where u.ruolo = :ruolo order by u.id")
+    List<Utente> findAllByRuoloForUpdate(@Param("ruolo") int ruolo);
 }

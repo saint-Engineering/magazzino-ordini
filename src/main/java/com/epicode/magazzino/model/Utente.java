@@ -36,7 +36,7 @@ public class Utente implements UserDetails {
     @Column(nullable = false, columnDefinition = "integer not null check (ruolo in (0, 1))")
     private int ruolo;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "integer not null default 0")
     private int errori;
 
     protected Utente() {}

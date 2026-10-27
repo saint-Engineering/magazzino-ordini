@@ -41,7 +41,7 @@ public class UtenteController {
         try {
             utenti.crea(form.getUsername(), form.getPassword(), form.getNome(), form.getCognome(), form.getRuolo());
             return "redirect:/utenti";
-        } catch (IllegalArgumentException | DataIntegrityViolationException e) {
+        } catch (IllegalArgumentException | IllegalStateException | DataIntegrityViolationException e) {
             model.addAttribute("errore", e.getMessage());
             model.addAttribute("modifica", false);
             return "utente-form";

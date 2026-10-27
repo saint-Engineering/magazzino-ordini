@@ -81,15 +81,21 @@ public class UtenteService {
         if (!utente.getUsername().equals(username) && utenti.existsByUsername(username)) {
             throw new IllegalArgumentException("Username già utilizzato");
         }
+        if (utente.getRuolo() == RuoloUtente.AMMINISTRATORE.getValore()
+                && ruolo != RuoloUtente.AMMINISTRATORE.getValore()
+                && utenti.findAllByRuoloForUpdate(RuoloUtente.AMMINISTRATORE.getValore()).size() <= 1) {
+            throw new IllegalStateException("Non è possibile rimuovere l'ultimo amministratore");
+        }
         utente.aggiornaDati(username, nome, cognome, ruolo);
         return utente;
     }
 
     public void elimina(Long id) {
         Utente utente = trova(id);
-        if (utente.getRuolo() == RuoloUtente.AMMINISTRATORE.getValore()
-                && utenti.countByRuolo(RuoloUtente.AMMINISTRATORE.getValore()) <= 1) {
-            throw new IllegalStateException("Non è possibile eliminare l'ultimo amministratore");
+        if (utente.getRuolo() == RuoloUtente.AMMINISTRATORE.getValore()) {
+            if (utenti.findAllByRuoloForUpdate(RuoloUtente.AMMINISTRATORE.getValore()).size() <= 1) {
+                throw new IllegalStateException("Non è possibile eliminare l'ultimo amministratore");
+            }
         }
         utenti.delete(utente);
     }

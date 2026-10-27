@@ -6,8 +6,6 @@ import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -17,11 +15,9 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 public class UtenteAuthenticationProvider implements AuthenticationProvider {
 
     private final UtenteService utenti;
-    private final UserDetailsService userDetailsService;
 
-    public UtenteAuthenticationProvider(UtenteService utenti, UserDetailsService userDetailsService) {
+    public UtenteAuthenticationProvider(UtenteService utenti) {
         this.utenti = utenti;
-        this.userDetailsService = userDetailsService;
     }
 
     @Override
@@ -30,9 +26,8 @@ public class UtenteAuthenticationProvider implements AuthenticationProvider {
         Object credenziale = authentication.getCredentials();
         String password = credenziale == null ? "" : credenziale.toString();
         Utente utente = utenti.autentica(username, password, indirizzoIp());
-        UserDetails dettagli = userDetailsService.loadUserByUsername(utente.getUsername());
         UsernamePasswordAuthenticationToken autenticato =
-                UsernamePasswordAuthenticationToken.authenticated(dettagli, null, dettagli.getAuthorities());
+                UsernamePasswordAuthenticationToken.authenticated(utente, null, utente.getAuthorities());
         autenticato.setDetails(authentication.getDetails());
         return autenticato;
     }
