@@ -22,64 +22,58 @@ import org.springframework.test.web.servlet.MockMvc;
 @WithMockUser(roles = "UTENTE")
 class PagineTest {
 
-    @Autowired
-    private MockMvc mvc;
+  @Autowired
+  private MockMvc mvc;
 
-    @Test
-    void elencoProdotti() throws Exception {
-        mvc.perform(get("/prodotti"))
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Trapano a batteria 18V")));
-    }
+  @Test
+  void elencoProdotti() throws Exception {
+    mvc.perform(get("/prodotti")).andExpect(status().isOk())
+        .andExpect(content().string(containsString("Trapano a batteria 18V")));
+  }
 
-    @Test
-    void ilFormCreaUnOrdineEPortaAlDettaglio() throws Exception {
-        mvc.perform(post("/ordini").with(csrf())
-                        .param("cliente", "Ferramenta Bianchi")
-                        .param("righe[0].codice", "GUA-L")
-                        .param("righe[0].quantita", "2"))
-                .andExpect(status().is3xxRedirection())
-                .andExpect(redirectedUrlPattern("/ordini/*"));
-    }
+  @Test
+  void ilFormCreaUnOrdineEPortaAlDettaglio() throws Exception {
+    mvc.perform(
+        post("/ordini").with(csrf()).param("cliente", "Ferramenta Bianchi")
+            .param("righe[0].codice", "GUA-L").param("righe[0].quantita", "2"))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrlPattern("/ordini/*"));
+  }
 
-    @Test
-    void ilFormMostraLErroreSeLaScortaNonBasta() throws Exception {
-        mvc.perform(post("/ordini").with(csrf())
-                        .param("cliente", "Ferramenta Bianchi")
-                        .param("righe[0].codice", "NAS-50")
-                        .param("righe[0].quantita", "1"))
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Scorta insufficiente per NAS-50")));
-    }
+  @Test
+  void ilFormMostraLErroreSeLaScortaNonBasta() throws Exception {
+    mvc.perform(
+        post("/ordini").with(csrf()).param("cliente", "Ferramenta Bianchi")
+            .param("righe[0].codice", "NAS-50").param("righe[0].quantita", "1"))
+        .andExpect(status().isOk()).andExpect(content()
+            .string(containsString("Scorta insufficiente per NAS-50")));
+  }
 
-    @Test
-    void ordineInesistente() throws Exception {
-        mvc.perform(get("/ordini/9999"))
-                .andExpect(status().isNotFound());
-    }
+  @Test
+  void ordineInesistente() throws Exception {
+    mvc.perform(get("/ordini/9999")).andExpect(status().isNotFound());
+  }
 
-    @Test
-    void dettaglioEdElencoMostranoScontiSpedizioneETotaleDaPagare() throws Exception {
-        MvcResult creazione = mvc.perform(post("/ordini").with(csrf())
-                        .param("cliente", "Ferramenta Bianchi")
-                        .param("righe[0].codice", "GUA-L")
-                        .param("righe[0].quantita", "10"))
-                .andExpect(status().is3xxRedirection())
-                .andReturn();
-        String urlDettaglio = creazione.getResponse().getRedirectedUrl();
+  @Test
+  void dettaglioEdElencoMostranoScontiSpedizioneETotaleDaPagare()
+      throws Exception {
+    MvcResult creazione = mvc
+        .perform(post("/ordini").with(csrf())
+            .param("cliente", "Ferramenta Bianchi")
+            .param("righe[0].codice", "GUA-L").param("righe[0].quantita", "10"))
+        .andExpect(status().is3xxRedirection()).andReturn();
+    String urlDettaglio = creazione.getResponse().getRedirectedUrl();
 
-        mvc.perform(get(urlDettaglio))
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("5%")))
-                .andExpect(content().string(containsString("30,40 €")))
-                .andExpect(content().string(containsString("Totale merce")))
-                .andExpect(content().string(containsString("Spedizione")))
-                .andExpect(content().string(containsString("9,90 €")))
-                .andExpect(content().string(containsString("Totale da pagare")))
-                .andExpect(content().string(containsString("40,30 €")));
+    mvc.perform(get(urlDettaglio)).andExpect(status().isOk())
+        .andExpect(content().string(containsString("5%")))
+        .andExpect(content().string(containsString("30,40 €")))
+        .andExpect(content().string(containsString("Totale merce")))
+        .andExpect(content().string(containsString("Spedizione")))
+        .andExpect(content().string(containsString("9,90 €")))
+        .andExpect(content().string(containsString("Totale da pagare")))
+        .andExpect(content().string(containsString("40,30 €")));
 
-        mvc.perform(get("/ordini"))
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("40,30 €")));
-    }
+    mvc.perform(get("/ordini")).andExpect(status().isOk())
+        .andExpect(content().string(containsString("40,30 €")));
+  }
 }

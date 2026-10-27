@@ -13,16 +13,17 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerAdvice
 public class GestoreErrori {
 
-    @ModelAttribute("amministratore")
-    public boolean amministratore(Authentication autenticazione) {
-        return autenticazione != null && autenticazione.getAuthorities().stream()
-                .anyMatch(autorita -> autorita.getAuthority().equals("ROLE_AMMINISTRATORE"));
-    }
+  @ModelAttribute("amministratore")
+  public boolean amministratore(Authentication autenticazione) {
+    return autenticazione != null
+        && autenticazione.getAuthorities().stream().anyMatch(
+            autorita -> autorita.getAuthority().equals("ROLE_AMMINISTRATORE"));
+  }
 
-    @ExceptionHandler(RisorsaNonTrovataException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public String nonTrovato(RisorsaNonTrovataException e, Model model) {
-        model.addAttribute("errore", e.getMessage());
-        return "errore";
-    }
+  @ExceptionHandler(RisorsaNonTrovataException.class)
+  @ResponseStatus(HttpStatus.NOT_FOUND)
+  public String nonTrovato(RisorsaNonTrovataException e, Model model) {
+    model.addAttribute("errore", e.getMessage());
+    return "errore";
+  }
 }

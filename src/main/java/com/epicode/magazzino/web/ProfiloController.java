@@ -13,35 +13,29 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Controller
 public class ProfiloController {
 
-    private final UtenteService utenti;
+  private final UtenteService utenti;
 
-    public ProfiloController(UtenteService utenti) {
-        this.utenti = utenti;
-    }
+  public ProfiloController(UtenteService utenti) {
+    this.utenti = utenti;
+  }
 
-    @GetMapping("/profilo/password")
-    public String paginaPassword(Model model) {
-        model.addAttribute("form", new CambioPasswordForm());
-        return "cambio-password";
-    }
+  @GetMapping("/profilo/password")
+  public String paginaPassword(Model model) {
+    model.addAttribute("form", new CambioPasswordForm());
+    return "cambio-password";
+  }
 
-    @PostMapping("/profilo/password")
-    public String cambiaPassword(
-            @ModelAttribute("form") CambioPasswordForm form,
-            Authentication autenticazione,
-            Model model,
-            RedirectAttributes redirect) {
-        try {
-            utenti.cambiaPassword(
-                    autenticazione.getName(),
-                    form.getPasswordAttuale(),
-                    form.getNuovaPassword(),
-                    form.getConfermaPassword());
-            redirect.addFlashAttribute("messaggio", "Password aggiornata");
-            return "redirect:/profilo/password";
-        } catch (IllegalArgumentException e) {
-            model.addAttribute("errore", e.getMessage());
-            return "cambio-password";
-        }
+  @PostMapping("/profilo/password")
+  public String cambiaPassword(@ModelAttribute("form") CambioPasswordForm form,
+      Authentication autenticazione, Model model, RedirectAttributes redirect) {
+    try {
+      utenti.cambiaPassword(autenticazione.getName(), form.getPasswordAttuale(),
+          form.getNuovaPassword(), form.getConfermaPassword());
+      redirect.addFlashAttribute("messaggio", "Password aggiornata");
+      return "redirect:/profilo/password";
+    } catch (IllegalArgumentException e) {
+      model.addAttribute("errore", e.getMessage());
+      return "cambio-password";
     }
+  }
 }
