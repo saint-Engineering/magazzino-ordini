@@ -24,7 +24,7 @@ public class Utente implements UserDetails {
   @Column(nullable = false, unique = true, length = 100)
   private String username;
 
-  @Column(name = "password_hash", nullable = false, length = 100)
+  @Column(name = "password_hash", nullable = false, length = 60)
   private String passwordHash;
 
   @Column(nullable = false, length = 100)
