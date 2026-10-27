@@ -6,17 +6,20 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.MockMvc;
 
 /** Le pagine principali si aprono e il form crea davvero un ordine. */
 @SpringBootTest
 @AutoConfigureMockMvc
+@WithMockUser(roles = "UTENTE")
 class PagineTest {
 
     @Autowired
@@ -31,7 +34,7 @@ class PagineTest {
 
     @Test
     void ilFormCreaUnOrdineEPortaAlDettaglio() throws Exception {
-        mvc.perform(post("/ordini")
+        mvc.perform(post("/ordini").with(csrf())
                         .param("cliente", "Ferramenta Bianchi")
                         .param("righe[0].codice", "GUA-L")
                         .param("righe[0].quantita", "2"))
@@ -41,7 +44,7 @@ class PagineTest {
 
     @Test
     void ilFormMostraLErroreSeLaScortaNonBasta() throws Exception {
-        mvc.perform(post("/ordini")
+        mvc.perform(post("/ordini").with(csrf())
                         .param("cliente", "Ferramenta Bianchi")
                         .param("righe[0].codice", "NAS-50")
                         .param("righe[0].quantita", "1"))
@@ -57,7 +60,7 @@ class PagineTest {
 
     @Test
     void dettaglioEdElencoMostranoScontiSpedizioneETotaleDaPagare() throws Exception {
-        MvcResult creazione = mvc.perform(post("/ordini")
+        MvcResult creazione = mvc.perform(post("/ordini").with(csrf())
                         .param("cliente", "Ferramenta Bianchi")
                         .param("righe[0].codice", "GUA-L")
                         .param("righe[0].quantita", "10"))
