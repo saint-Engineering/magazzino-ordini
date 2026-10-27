@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="it">
+<head th:replace="~{fragments :: head('Utente')}"></head>
+<body>
+<header th:replace="~{fragments :: menu}"></header>
+<main>
+    <h1 th:text="${modifica} ? 'Modifica utente' : 'Aggiungi utente'">Utente</h1>
+    <div th:replace="~{fragments :: avvisi}"></div>
+    <form th:action="${modifica} ? @{/utenti/{id}/modifica(id=${utente.id})} : @{/utenti/nuovo}"
+          th:object="${form}" method="post">
+        <label>Username
+            <input type="text" th:field="*{username}" maxlength="100" required>
+        </label>
+        <label th:if="${!modifica}">Password
+            <input type="password" th:field="*{password}" minlength="8" maxlength="128" required>
+        </label>
+        <label>Nome
+            <input type="text" th:field="*{nome}" maxlength="100" required>
+        </label>
+        <label>Cognome
+            <input type="text" th:field="*{cognome}" maxlength="100" required>
+        </label>
+        <label>Ruolo
+            <select th:field="*{ruolo}">
+                <option value="0">Amministratore</option>
+                <option value="1">Utente</option>
+            </select>
+        </label>
+        <button type="submit" class="primario">Salva</button>
+        <a th:href="@{/utenti}">Annulla</a>
+    </form>
+</main>
+</body>
+</html>

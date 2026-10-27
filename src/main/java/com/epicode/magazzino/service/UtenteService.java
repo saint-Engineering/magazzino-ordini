@@ -9,6 +9,7 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ public class UtenteService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    @Transactional(noRollbackFor = AuthenticationException.class)
     public Utente autentica(String username, String password, String indirizzoIp) {
         Utente utente = utenti.findByUsernameForUpdate(username).orElse(null);
         if (utente == null) {

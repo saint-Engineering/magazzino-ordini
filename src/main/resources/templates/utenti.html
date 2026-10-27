@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="it">
+<head th:replace="~{fragments :: head('Utenti')}"></head>
+<body>
+<header th:replace="~{fragments :: menu}"></header>
+<main>
+    <h1>Utenti</h1>
+    <div th:replace="~{fragments :: avvisi}"></div>
+    <p><a th:href="@{/utenti/nuovo}" class="primario">Aggiungi utente</a></p>
+    <table>
+        <thead>
+        <tr>
+            <th>Username</th>
+            <th>Nome</th>
+            <th>Cognome</th>
+            <th>Ruolo</th>
+            <th>Errori</th>
+            <th>Azioni</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="utente : ${utenti}">
+            <td th:text="${utente.username}">user</td>
+            <td th:text="${utente.nome}">Nome</td>
+            <td th:text="${utente.cognome}">Cognome</td>
+            <td th:text="${utente.ruolo == 0 ? 'Amministratore' : 'Utente'}">Utente</td>
+            <td th:text="${utente.errori}">0</td>
+            <td class="azioni">
+                <a th:href="@{/utenti/{id}/modifica(id=${utente.id})}">Modifica</a>
+                <form th:if="${utente.errori >= 3}" th:action="@{/utenti/{id}/sblocca(id=${utente.id})}" method="post">
+                    <button type="submit">Sblocca</button>
+                </form>
+                <form th:action="@{/utenti/{id}/elimina(id=${utente.id})}" method="post">
+                    <button type="submit">Elimina</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>
