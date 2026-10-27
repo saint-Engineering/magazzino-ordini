@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="it">
+<head th:replace="~{fragments :: head('Accedi')}"></head>
+<body>
+<main>
+    <h1>Accedi</h1>
+    <p class="avviso errore" th:if="${param.errore}">Autenticazione negata</p>
+    <p class="avviso errore" th:if="${param.bloccato}">Notifica inviata alla polizia postale</p>
+    <p class="avviso ok" th:if="${param.logout}">Logout effettuato</p>
+    <form th:action="@{/login}" method="post">
+        <label>Username
+            <input type="text" name="username" autocomplete="username" required>
+        </label>
+        <label>Password
+            <input type="password" name="password" autocomplete="current-password" required>
+        </label>
+        <button type="submit" class="primario">Accedi</button>
+    </form>
+</main>
+</body>
+</html>
