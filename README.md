@@ -27,6 +27,53 @@ scrivere, verificare e rivedere agli agenti.
 .\mvnw.cmd spring-boot:run   # poi apri http://localhost:8080
 ```
 
+## Scansioni di sicurezza
+
+- **CodeQL** (`.github/workflows/codeql.yml`): analizza Java con JDK 25 e autobuild
+  su push e pull request verso `main`, ogni lunedì alle 05:23 UTC e su avvio manuale.
+- **Dependabot** (`.github/dependabot.yml`): controlla settimanalmente Maven e le
+  GitHub Actions in `.github/workflows`, con massimo 5 PR di versione aperte per
+  ecosistema. Per le Actions, GitHub richiede `directory: "/"`.
+
+### Impostazioni richieste e verifica
+
+Un amministratore deve verificare **Settings → Security & analysis** (oppure le
+sezioni **Advanced Security / Code security / Secret Protection**, secondo la UI):
+
+1. Per usare questo workflow, passare CodeQL da **Default setup** a **Advanced
+   setup**, se il primo è attivo: il default setup non accetta i risultati del
+   workflow avanzato. Consentire GitHub Actions e il caricamento dei risultati
+   con `security-events: write`.
+2. Abilitare **Dependency graph**, **Dependabot alerts** e **Dependabot security
+   updates**. Il file YAML abilita gli aggiornamenti di versione dopo il merge su
+   `main`, ma non abilita questi interruttori. Gli aggiornamenti di sicurezza
+   partono dagli advisory, senza aspettare la cadenza settimanale.
+3. Abilitare **Secret scanning** e **Push protection**, dove disponibili:
+   non si abilitano con un workflow o con `dependabot.yml`.
+
+Il repository è pubblico: CodeQL e secret scanning sono disponibili gratuitamente
+per i repository pubblici. Per repository privati/interni possono essere necessarie
+licenze **GitHub Code Security** e **GitHub Secret Protection**, oltre ai permessi
+di amministrazione e all'autorizzazione dell'organizzazione. Durante questa
+configurazione l'integrazione ha ricevuto `403 Resource not accessible by
+integration` leggendo gli alert CodeQL e secret scanning; il browser non era
+autenticato. Quindi lo stato di secret scanning/push protection e gli interruttori
+non sono stati verificati né modificati.
+
+Per verificare dopo il merge:
+
+- In **Actions → CodeQL**, controllare un'esecuzione su `main` o selezionare
+  **Run workflow**; verificare che inizializzazione, autobuild e analisi siano verdi.
+  Le PR verso `main` devono mostrare il controllo CodeQL (può servire l'approvazione
+  di un manutentore per workflow provenienti da fork o creati da bot).
+- In **Security → Code scanning**, verificare l'ultima analisi Java e gli eventuali
+  alert; in **Security → Dependabot**, verificare gli alert e le PR di sicurezza.
+  In **Insights → Dependency graph → Dependabot**, controllare i job settimanali
+  Maven e GitHub Actions.
+- In **Security → Secret scanning**, verificare che il servizio sia attivo e
+  consultare gli eventuali alert. Nessun alert non significa che il servizio sia
+  disabilitato; non inserire credenziali reali per provarlo.
+
 ## Come è fatto
 
 ```
