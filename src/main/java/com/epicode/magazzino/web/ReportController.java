@@ -45,8 +45,8 @@ public class ReportController {
     /** Ordini di un cliente: /report/ordini?cliente=Rossi */
     @GetMapping("/ordini")
     public String ordini(@RequestParam String cliente, Model model) {
-        String sql = "SELECT id, cliente, stato FROM ordini WHERE cliente = '" + cliente + "'";
-        model.addAttribute("righe", jdbc.queryForList(sql));
+        String sql = "SELECT id, cliente, stato FROM ordini WHERE cliente = ?";
+        model.addAttribute("righe", jdbc.queryForList(sql, cliente));
         model.addAttribute("titolo", "Ordini di <b>" + cliente + "</b>");
         return "report";
     }
