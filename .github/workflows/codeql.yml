@@ -12,7 +12,7 @@ on:
 jobs:
   analyze:
     name: Analisi Java
-    runs-on: ubuntu-latest
+    runs-on: debian-stable
     timeout-minutes: 30
     permissions:
       contents: read
