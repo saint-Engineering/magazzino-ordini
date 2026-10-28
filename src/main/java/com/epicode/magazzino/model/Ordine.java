@@ -76,7 +76,7 @@ public class Ordine {
         righe.add(new RigaOrdine(this, prodotto, quantita));
     }
 
-    /** Somma i subtotali scontati delle righe dell'ordine. */
+    /** Totale merce, somma dei subtotali già scontati. */
     public BigDecimal totale() {
         BigDecimal totale = BigDecimal.ZERO.setScale(2);
         for (RigaOrdine riga : righe) {
@@ -91,6 +91,10 @@ public class Ordine {
             return SPEDIZIONE_GRATUITA;
         }
         return COSTO_SPEDIZIONE;
+    }
+
+    public BigDecimal speseSpedizione() {
+        return spedizione();
     }
 
     /** Somma il totale della merce e il costo di spedizione. */

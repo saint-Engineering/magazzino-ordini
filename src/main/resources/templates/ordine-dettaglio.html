@@ -35,12 +35,12 @@
             <th class="num" th:text="${#numbers.formatDecimal(ordine.totale(), 1, 'POINT', 2, 'COMMA')} + ' €'">69,00 €</th>
         </tr>
         <tr>
-            <th colspan="4">Spedizione</th>
-            <th class="num" th:text="${#numbers.formatDecimal(ordine.spedizione(), 1, 'POINT', 2, 'COMMA')} + ' €'">9,90 €</th>
+            <td colspan="4">Spedizione</td>
+            <td class="num" th:text="${#numbers.formatDecimal(ordine.speseSpedizione(), 1, 'POINT', 2, 'COMMA')} + ' €'">9,90 €</td>
         </tr>
         <tr>
             <th colspan="4">Totale da pagare</th>
-            <th class="num" th:text="${#numbers.formatDecimal(ordine.totaleDaPagare(), 1, 'POINT', 2, 'COMMA')} + ' €'">79,80 €</th>
+            <th class="num" th:text="${#numbers.formatDecimal(ordine.totaleDaPagare(), 1, 'POINT', 2, 'COMMA')} + ' €'">75,45 €</th>
         </tr>
         </tfoot>
     </table>

@@ -1,10 +1,13 @@
 ---
-name: test.instructions.md
-description: regole per la creazione dei file di test
-applyTo: /src/test/java
+applyTo: "src/test/**"
+description: "Come si scrivono i test di questo repository"
 ---
-
-Usare Junit - Jupiter 5.9.1 e mockito 3.5.11
-
-I valori attesi nei test vanno espressi come literal col valore atteso.
-
+# Test
+- JUnit 5 con `org.junit.jupiter.api.Assertions`. Le regole di dominio si testano
+  senza Spring (`new Ordine(...)`); `@SpringBootTest` solo per i casi d'uso.
+- Ogni test verifica una regola della specifica e il nome del metodo la dice
+  (es. `daDieciAQuarantanovePezziScontoCinquePerCento`).
+- I valori attesi si calcolano a mano dalla specifica, mai chiamando il codice
+  sotto test.
+- Coprire sempre i confini (9 e 10, 49 e 50) e almeno un caso di errore.
+- Importi confrontati come `new BigDecimal("55.58")`, con due decimali.

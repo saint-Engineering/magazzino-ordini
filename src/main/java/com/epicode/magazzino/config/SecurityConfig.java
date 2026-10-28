@@ -28,7 +28,8 @@ public class SecurityConfig {
             .requestMatchers("/login", "/css/**", "/error").permitAll()
             .requestMatchers("/utenti/**").hasRole("AMMINISTRATORE")
             .requestMatchers("/profilo/**").authenticated()
-            .requestMatchers("/", "/prodotti/**", "/ordini/**")
+            .requestMatchers("/", "/prodotti/**", "/ordini/**", "/movimenti/**",
+                "/report/**")
             .hasRole("UTENTE").anyRequest().denyAll())
         .formLogin(
             login -> login.loginPage("/login").loginProcessingUrl("/login")

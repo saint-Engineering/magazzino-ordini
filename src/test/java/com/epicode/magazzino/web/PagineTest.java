@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -75,5 +76,22 @@ class PagineTest {
 
     mvc.perform(get("/ordini")).andExpect(status().isOk())
         .andExpect(content().string(containsString("40,30 €")));
+  }
+
+  @Test
+  void riassortimentoNonValidoMostraLErrore() throws Exception {
+    mvc.perform(post("/prodotti/GUA-L/riassortimento").with(csrf()).param("quantita", "0"))
+        .andExpect(status().isOk())
+        .andExpect(content().string(containsString("La quantità da riassortire va da 1 a 1000")));
+  }
+
+  @Test
+  void riassortimentoValidoPortaAiMovimenti() throws Exception {
+    mvc.perform(post("/prodotti/MET-5/riassortimento").with(csrf())
+        .param("quantita", "10").param("nota", "Arrivo"))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl("/movimenti"));
+    mvc.perform(get("/movimenti")).andExpect(status().isOk())
+        .andExpect(content().string(containsString("Arrivo")));
   }
 }

@@ -13,6 +13,7 @@
         <span th:unless="${amministratore}">
             <a th:href="@{/prodotti}">Prodotti</a>
             <a th:href="@{/ordini}">Ordini</a>
+            <a th:href="@{/movimenti}">Movimenti</a>
             <a th:href="@{/ordini/nuovo}" class="primario">Nuovo ordine</a>
         </span>
         <a th:if="${amministratore}" th:href="@{/utenti}">Utenti</a>
