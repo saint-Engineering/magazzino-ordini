@@ -9,5 +9,7 @@ public interface ProdottoRepository extends JpaRepository<Prodotto, Long> {
 
     Optional<Prodotto> findByCodice(String codice);
 
+    boolean existsByCodice(String codice);
+
     List<Prodotto> findAllByOrderByNomeAsc();
 }

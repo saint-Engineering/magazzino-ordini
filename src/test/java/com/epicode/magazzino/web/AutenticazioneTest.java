@@ -64,7 +64,8 @@ class AutenticazioneTest {
     mvc.perform(get("/utenti/nuovo")
         .session((org.springframework.mock.web.MockHttpSession) sessione))
         .andExpect(status().isOk())
-        .andExpect(content().string(containsString("Aggiungi utente")));
+        .andExpect(content().string(containsString("Aggiungi utente")))
+        .andExpect(content().string(containsString("Magazziniere")));
     mvc.perform(get("/prodotti")
         .session((org.springframework.mock.web.MockHttpSession) sessione))
         .andExpect(status().isForbidden());

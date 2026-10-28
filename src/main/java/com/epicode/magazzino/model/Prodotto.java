@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 /** Un articolo del magazzino con la sua giacenza. */
 @Entity
@@ -42,7 +43,7 @@ public class Prodotto {
         }
         this.codice = codice;
         this.nome = nome;
-        this.prezzo = prezzo;
+        this.prezzo = prezzo.setScale(2, RoundingMode.HALF_UP);
         this.disponibili = disponibili;
         this.scortaMinima = scortaMinima;
     }
@@ -64,6 +65,11 @@ public class Prodotto {
             throw new RichiestaNonValidaException("La quantità deve essere maggiore di zero");
         }
         disponibili += quantita;
+    }
+
+    /** Registra lo smaltimento di pezzi fuori assortimento. */
+    public void smaltisci(int quantita) {
+        preleva(quantita);
     }
 
     public Long getId() {

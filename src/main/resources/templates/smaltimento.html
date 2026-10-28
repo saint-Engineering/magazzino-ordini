@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="it">
+<head th:replace="~{fragments :: head('Smaltimento scorte')}"></head>
+<body>
+<header th:replace="~{fragments :: menu}"></header>
+<main>
+    <h1>Smaltimento scorte: <span th:text="${prodotto.nome}">Viti</span></h1>
+    <p>Disponibili oggi: <strong th:text="${prodotto.disponibili}">240</strong></p>
+    <div th:replace="~{fragments :: avvisi}"></div>
+    <form th:action="@{/prodotti/{codice}/smaltimento(codice=${prodotto.codice})}"
+          th:object="${form}" method="post">
+        <label>Pezzi da smaltire
+            <input type="number" th:field="*{quantita}" min="1" required>
+        </label>
+        <label>Nota (facoltativa, massimo 200 caratteri)
+            <input type="text" th:field="*{nota}" maxlength="200" size="60">
+        </label>
+        <button type="submit" class="primario">Registra smaltimento</button>
+    </form>
+</main>
+</body>
+</html>

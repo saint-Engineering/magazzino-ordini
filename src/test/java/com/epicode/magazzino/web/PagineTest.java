@@ -79,6 +79,7 @@ class PagineTest {
   }
 
   @Test
+  @WithMockUser(roles = "MAGAZZINIERE")
   void riassortimentoNonValidoMostraLErrore() throws Exception {
     mvc.perform(post("/prodotti/GUA-L/riassortimento").with(csrf()).param("quantita", "0"))
         .andExpect(status().isOk())
@@ -86,6 +87,7 @@ class PagineTest {
   }
 
   @Test
+  @WithMockUser(roles = "MAGAZZINIERE")
   void riassortimentoValidoPortaAiMovimenti() throws Exception {
     mvc.perform(post("/prodotti/MET-5/riassortimento").with(csrf())
         .param("quantita", "10").param("nota", "Arrivo"))
@@ -93,5 +95,53 @@ class PagineTest {
         .andExpect(redirectedUrl("/movimenti"));
     mvc.perform(get("/movimenti")).andExpect(status().isOk())
         .andExpect(content().string(containsString("Arrivo")));
+  }
+
+  @Test
+  void utenteNonPuoCensireAggiungereOSmaltireProdotti() throws Exception {
+    mvc.perform(get("/prodotti/nuovo")).andExpect(status().isForbidden());
+    mvc.perform(post("/prodotti/nuovo").with(csrf())
+        .param("codice", "NON-AUTORIZZATO").param("nome", "Prodotto")
+        .param("prezzo", "1.00").param("scortaMinima", "0"))
+        .andExpect(status().isForbidden());
+    mvc.perform(get("/prodotti/GUA-L/riassortimento"))
+        .andExpect(status().isForbidden());
+    mvc.perform(post("/prodotti/GUA-L/riassortimento").with(csrf())
+        .param("quantita", "1")).andExpect(status().isForbidden());
+    mvc.perform(get("/prodotti/GUA-L/smaltimento"))
+        .andExpect(status().isForbidden());
+    mvc.perform(post("/prodotti/GUA-L/smaltimento").with(csrf())
+        .param("quantita", "1")).andExpect(status().isForbidden());
+  }
+
+  @Test
+  @WithMockUser(roles = "MAGAZZINIERE")
+  void magazziniereCensisceProdottiERegistraSmaltimenti() throws Exception {
+    mvc.perform(get("/prodotti/nuovo")).andExpect(status().isOk())
+        .andExpect(content().string(containsString("Censimento nuovo prodotto")));
+
+    mvc.perform(post("/prodotti/nuovo").with(csrf())
+        .param("codice", "WEB-NEW").param("nome", "Prodotto web")
+        .param("prezzo", "2.50").param("scortaMinima", "2"))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl("/prodotti"));
+    mvc.perform(get("/prodotti")).andExpect(status().isOk())
+        .andExpect(content().string(containsString("WEB-NEW")))
+        .andExpect(content().string(containsString("Censisci prodotto")))
+        .andExpect(content().string(containsString("Aggiungi scorte")));
+
+    mvc.perform(post("/prodotti/WEB-NEW/riassortimento").with(csrf())
+        .param("quantita", "5").param("nota", "Carico iniziale"))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl("/movimenti"));
+    mvc.perform(post("/prodotti/WEB-NEW/smaltimento").with(csrf())
+        .param("quantita", "2").param("nota", "Cessazione"))
+        .andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl("/movimenti"));
+
+    mvc.perform(get("/movimenti")).andExpect(status().isOk())
+        .andExpect(content().string(containsString("SMALTIMENTO")))
+        .andExpect(content().string(containsString("Cessazione")));
+    mvc.perform(get("/ordini")).andExpect(status().isForbidden());
   }
 }

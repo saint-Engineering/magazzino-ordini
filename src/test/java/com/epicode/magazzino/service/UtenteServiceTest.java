@@ -96,6 +96,15 @@ class UtenteServiceTest {
   }
 
   @Test
+  void ruoloMagazziniereVieneTradottoNellAutoritaCorretta() {
+    Utente magazziniere = utenti.crea("magazziniere", "Password1!", "Nome",
+        "Cognome", RuoloUtente.MAGAZZINIERE.getValore());
+
+    assertEquals("ROLE_MAGAZZINIERE",
+        magazziniere.getAuthorities().iterator().next().getAuthority());
+  }
+
+  @Test
   void modificaSbloccaEImpedisceDiRimuovereUltimoAmministratore() {
     Utente utente = creaUtente("gestione");
     utenti.modifica(utente.getId(), "gestito", "Nuovo", "Nome",

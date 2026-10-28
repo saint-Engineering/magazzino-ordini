@@ -65,6 +65,12 @@ public class MovimentoMagazzino {
                 riga.getQuantita(), null, ordineId);
     }
 
+    public static MovimentoMagazzino smaltimento(Prodotto prodotto, Smaltimento richiesta,
+                                                  LocalDateTime quando) {
+        return new MovimentoMagazzino(quando, prodotto, TipoMovimento.SMALTIMENTO,
+                richiesta.quantita(), richiesta.nota(), null);
+    }
+
     public Long getId() {
         return id;
     }

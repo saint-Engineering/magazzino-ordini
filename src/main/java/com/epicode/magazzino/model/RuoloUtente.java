@@ -2,7 +2,7 @@ package com.epicode.magazzino.model;
 
 /** I ruoli persistiti nella tabella UTENTI. */
 public enum RuoloUtente {
-  AMMINISTRATORE(0), UTENTE(1);
+  AMMINISTRATORE(0), UTENTE(1), MAGAZZINIERE(2);
 
   private final int valore;
 

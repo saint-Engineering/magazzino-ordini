@@ -5,6 +5,8 @@
 <header th:replace="~{fragments :: menu}"></header>
 <main>
     <h1>Prodotti</h1>
+    <div th:replace="~{fragments :: avvisi}"></div>
+    <p th:if="${magazziniere}"><a th:href="@{/prodotti/nuovo}" class="primario">Censisci prodotto</a></p>
     <table>
         <thead>
         <tr>
@@ -24,7 +26,10 @@
             <td class="num" th:text="${#numbers.formatDecimal(p.prezzo, 1, 'POINT', 2, 'COMMA')} + ' €'">6,90 €</td>
             <td class="num" th:text="${p.disponibili}">240</td>
             <td class="num" th:text="${p.scortaMinima}">50</td>
-            <td><a th:href="@{/prodotti/{codice}/riassortimento(codice=${p.codice})}">Riassortisci</a></td>
+            <td class="azioni" th:if="${magazziniere}">
+                <a th:href="@{/prodotti/{codice}/riassortimento(codice=${p.codice})}">Aggiungi scorte</a>
+                <a th:href="@{/prodotti/{codice}/smaltimento(codice=${p.codice})}">Smaltisci</a>
+            </td>
         </tr>
         </tbody>
     </table>

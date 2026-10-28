@@ -10,13 +10,17 @@
 <header th:fragment="menu">
     <span class="logo">Magazzino &amp; Ordini</span>
     <nav>
-        <span th:unless="${amministratore}">
+        <span th:if="${amministratore != true and magazziniere != true}">
             <a th:href="@{/prodotti}">Prodotti</a>
             <a th:href="@{/ordini}">Ordini</a>
             <a th:href="@{/movimenti}">Movimenti</a>
             <a th:href="@{/ordini/nuovo}" class="primario">Nuovo ordine</a>
         </span>
-        <a th:if="${amministratore}" th:href="@{/utenti}">Utenti</a>
+        <span th:if="${magazziniere == true}">
+            <a th:href="@{/prodotti}">Prodotti</a>
+            <a th:href="@{/movimenti}">Movimenti</a>
+        </span>
+        <a th:if="${amministratore == true}" th:href="@{/utenti}">Utenti</a>
         <a th:href="@{/profilo/password}">Cambia password</a>
         <form th:action="@{/logout}" method="post">
             <button type="submit">Esci</button>

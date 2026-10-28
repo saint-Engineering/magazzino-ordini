@@ -27,6 +27,27 @@ class ProdottoTest {
     }
 
     @Test
+    void smaltisceLaQuantitaRichiestaDallaGiacenza() {
+        Prodotto viti = viti();
+        viti.smaltisci(4);
+        assertEquals(6, viti.getDisponibili());
+    }
+
+    @Test
+    void smaltisceTuttaLaGiacenza() {
+        Prodotto viti = viti();
+        viti.smaltisci(10);
+        assertEquals(0, viti.getDisponibili());
+    }
+
+    @Test
+    void smaltimentoOltreLaGiacenzaVieneRifiutatoSenzaToccareNulla() {
+        Prodotto viti = viti();
+        assertThrows(ScortaInsufficienteException.class, () -> viti.smaltisci(11));
+        assertEquals(10, viti.getDisponibili());
+    }
+
+    @Test
     void unPezzoInPiuDellaGiacenzaVieneRifiutatoSenzaToccareNulla() {
         Prodotto viti = viti();
         assertThrows(ScortaInsufficienteException.class, () -> viti.preleva(11));
@@ -37,7 +58,15 @@ class ProdottoTest {
     void quantitaZeroONegativaNonValida() {
         Prodotto viti = viti();
         assertThrows(RichiestaNonValidaException.class, () -> viti.preleva(0));
+        assertThrows(RichiestaNonValidaException.class, () -> viti.smaltisci(0));
         assertThrows(RichiestaNonValidaException.class, () -> viti.riassortisci(-1));
+    }
+
+    @Test
+    void prezzoSiArrotondaAlCentesimoConHalfUp() {
+        Prodotto prodotto = new Prodotto("X", "X", new BigDecimal("1.235"), 0, 0);
+
+        assertEquals(new BigDecimal("1.24"), prodotto.getPrezzo());
     }
 
     @Test

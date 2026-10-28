@@ -3,9 +3,12 @@ package com.epicode.magazzino.service;
 import com.epicode.magazzino.model.MovimentoMagazzino;
 import com.epicode.magazzino.model.Prodotto;
 import com.epicode.magazzino.model.Riassortimento;
+import com.epicode.magazzino.model.RichiestaNonValidaException;
 import com.epicode.magazzino.model.RisorsaNonTrovataException;
+import com.epicode.magazzino.model.Smaltimento;
 import com.epicode.magazzino.repository.MovimentoRepository;
 import com.epicode.magazzino.repository.ProdottoRepository;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,11 +40,32 @@ public class CatalogoService {
                 .orElseThrow(() -> new RisorsaNonTrovataException("Prodotto " + codice + " non trovato"));
     }
 
+    /** Registra un nuovo prodotto, inizialmente senza giacenza. */
+    public Prodotto crea(String codice, String nome, BigDecimal prezzo, int scortaMinima) {
+        String codiceNormalizzato = codice == null ? null : codice.strip();
+        if (codiceNormalizzato != null && prodotti.existsByCodice(codiceNormalizzato)) {
+            throw new RichiestaNonValidaException(
+                    "Esiste già un prodotto con codice " + codiceNormalizzato);
+        }
+        String nomeNormalizzato = nome == null ? null : nome.strip();
+        return prodotti.save(new Prodotto(codiceNormalizzato, nomeNormalizzato,
+                prezzo, 0, scortaMinima));
+    }
+
     /** R2-R4: la richiesta è già validata da Riassortimento; qui giacenza e movimento insieme. */
     public Prodotto riassortisci(String codice, Riassortimento richiesta) {
         Prodotto prodotto = trova(codice);
         prodotto.riassortisci(richiesta.quantita());
         movimenti.save(MovimentoMagazzino.carico(prodotto, richiesta, LocalDateTime.now(clock)));
+        return prodotto;
+    }
+
+    /** Registra lo smaltimento delle scorte insieme al relativo movimento. */
+    public Prodotto smaltisci(String codice, Smaltimento richiesta) {
+        Prodotto prodotto = trova(codice);
+        prodotto.smaltisci(richiesta.quantita());
+        movimenti.save(MovimentoMagazzino.smaltimento(
+                prodotto, richiesta, LocalDateTime.now(clock)));
         return prodotto;
     }
 

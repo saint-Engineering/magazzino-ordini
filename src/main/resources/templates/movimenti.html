@@ -24,7 +24,10 @@
             <td th:text="${m.prodotto.nome}">Viti</td>
             <td th:text="${m.tipo}">CARICO</td>
             <td class="num" th:text="${m.quantita}">100</td>
-            <td><a th:if="${m.ordineId}" th:href="@{/ordini/{id}(id=${m.ordineId})}" th:text="${m.ordineId}">1</a></td>
+            <td>
+                <a th:if="${m.ordineId != null and magazziniere != true}" th:href="@{/ordini/{id}(id=${m.ordineId})}" th:text="${m.ordineId}">1</a>
+                <span th:if="${m.ordineId != null and magazziniere == true}" th:text="${m.ordineId}">1</span>
+            </td>
             <td th:text="${m.nota}">Consegna fornitore</td>
         </tr>
         </tbody>

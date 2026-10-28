@@ -20,6 +20,13 @@ public class GestoreErrori {
             autorita -> autorita.getAuthority().equals("ROLE_AMMINISTRATORE"));
   }
 
+  @ModelAttribute("magazziniere")
+  public boolean magazziniere(Authentication autenticazione) {
+    return autenticazione != null
+        && autenticazione.getAuthorities().stream().anyMatch(
+            autorita -> autorita.getAuthority().equals("ROLE_MAGAZZINIERE"));
+  }
+
   @ExceptionHandler(RisorsaNonTrovataException.class)
   @ResponseStatus(HttpStatus.NOT_FOUND)
   public String nonTrovato(RisorsaNonTrovataException e, Model model) {

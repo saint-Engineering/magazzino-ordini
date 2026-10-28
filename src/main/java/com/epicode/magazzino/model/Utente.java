@@ -33,7 +33,7 @@ public class Utente implements UserDetails {
   @Column(nullable = false, length = 100)
   private String cognome;
 
-  @Column(nullable = false, columnDefinition = "integer not null check (ruolo in (0, 1))")
+  @Column(nullable = false, columnDefinition = "integer not null check (ruolo in (0, 1, 2))")
   private int ruolo;
 
   @Column(nullable = false, columnDefinition = "integer not null default 0")
@@ -101,7 +101,11 @@ public class Utente implements UserDetails {
 
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
-    String authority = ruolo == 0 ? "ROLE_AMMINISTRATORE" : "ROLE_UTENTE";
+    String authority = switch (RuoloUtente.daValore(ruolo)) {
+      case AMMINISTRATORE -> "ROLE_AMMINISTRATORE";
+      case UTENTE -> "ROLE_UTENTE";
+      case MAGAZZINIERE -> "ROLE_MAGAZZINIERE";
+    };
     return List.of(new SimpleGrantedAuthority(authority));
   }
 

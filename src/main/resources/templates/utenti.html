@@ -23,7 +23,7 @@
             <td th:text="${utente.username}">user</td>
             <td th:text="${utente.nome}">Nome</td>
             <td th:text="${utente.cognome}">Cognome</td>
-            <td th:text="${utente.ruolo == 0 ? 'Amministratore' : 'Utente'}">Utente</td>
+            <td th:text="${utente.ruolo == 0 ? 'Amministratore' : (utente.ruolo == 2 ? 'Magazziniere' : 'Utente')}">Utente</td>
             <td th:text="${utente.errori}">0</td>
             <td class="azioni">
                 <a th:href="@{/utenti/{id}/modifica(id=${utente.id})}">Modifica</a>

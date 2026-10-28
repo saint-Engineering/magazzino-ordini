@@ -1,6 +1,7 @@
 package com.epicode.magazzino.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.epicode.magazzino.model.MovimentoMagazzino;
@@ -8,6 +9,8 @@ import com.epicode.magazzino.model.Ordine;
 import com.epicode.magazzino.model.Prodotto;
 import com.epicode.magazzino.model.Riassortimento;
 import com.epicode.magazzino.model.RichiestaNonValidaException;
+import com.epicode.magazzino.model.ScortaInsufficienteException;
+import com.epicode.magazzino.model.Smaltimento;
 import com.epicode.magazzino.model.TipoMovimento;
 import com.epicode.magazzino.repository.ProdottoRepository;
 import java.math.BigDecimal;
@@ -53,6 +56,46 @@ class MovimentiTest {
         assertEquals(TipoMovimento.CARICO, movimenti.get(0).getTipo());
         assertEquals(25, movimenti.get(0).getQuantita());
         assertEquals("Consegna fornitore", movimenti.get(0).getNota());
+    }
+
+    @Test
+    void censisceUnNuovoProdottoConGiacenzaInizialeVuota() {
+        Prodotto prodotto = catalogo.crea("T-NEW", "Nuovo prodotto",
+                new BigDecimal("4.25"), 3);
+
+        assertEquals("T-NEW", prodotto.getCodice());
+        assertEquals(new BigDecimal("4.25"), prodotto.getPrezzo());
+        assertEquals(0, prodotto.getDisponibili());
+        assertEquals(3, prodotto.getScortaMinima());
+    }
+
+    @Test
+    void nonCensisceDueProdottiConLoStessoCodice() {
+        assertThrows(RichiestaNonValidaException.class,
+                () -> catalogo.crea("T-MOV", "Duplicato",
+                        new BigDecimal("1.00"), 0));
+    }
+
+    @Test
+    void smaltisceScorteERegistraIlMovimentoSenzaOrdine() {
+        catalogo.smaltisci("T-MOV", new Smaltimento(4, "Prodotto cessato"));
+
+        assertEquals(6, catalogo.trova("T-MOV").getDisponibili());
+        List<MovimentoMagazzino> movimenti = movimentiDi("T-MOV");
+        assertEquals(1, movimenti.size());
+        assertEquals(TipoMovimento.SMALTIMENTO, movimenti.get(0).getTipo());
+        assertEquals(4, movimenti.get(0).getQuantita());
+        assertEquals("Prodotto cessato", movimenti.get(0).getNota());
+        assertNull(movimenti.get(0).getOrdineId());
+    }
+
+    @Test
+    void smaltimentoOltreLaGiacenzaNonCambiaGiacenzaENonRegistraMovimenti() {
+        assertThrows(ScortaInsufficienteException.class,
+                () -> catalogo.smaltisci("T-MOV", new Smaltimento(11, null)));
+
+        assertEquals(10, catalogo.trova("T-MOV").getDisponibili());
+        assertEquals(0, movimentiDi("T-MOV").size());
     }
 
     @Test

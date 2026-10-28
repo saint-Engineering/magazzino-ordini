@@ -28,9 +28,12 @@ public class SecurityConfig {
             .requestMatchers("/login", "/css/**", "/error").permitAll()
             .requestMatchers("/utenti/**").hasRole("AMMINISTRATORE")
             .requestMatchers("/profilo/**").authenticated()
-            .requestMatchers("/", "/prodotti/**", "/ordini/**", "/movimenti/**",
-                "/report/**")
-            .hasRole("UTENTE").anyRequest().denyAll())
+            .requestMatchers("/prodotti/nuovo", "/prodotti/*/riassortimento",
+                "/prodotti/*/smaltimento").hasRole("MAGAZZINIERE")
+            .requestMatchers("/", "/prodotti/**", "/movimenti/**")
+            .hasAnyRole("UTENTE", "MAGAZZINIERE")
+            .requestMatchers("/ordini/**", "/report/**").hasRole("UTENTE")
+            .anyRequest().denyAll())
         .formLogin(
             login -> login.loginPage("/login").loginProcessingUrl("/login")
                 .successHandler((richiesta, risposta, autenticazione) -> {

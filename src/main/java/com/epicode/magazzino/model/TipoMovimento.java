@@ -7,5 +7,7 @@ public enum TipoMovimento {
     /** Pezzi usciti con un ordine. */
     SCARICO,
     /** Pezzi rientrati per un ordine annullato. */
-    RESO
+    RESO,
+    /** Pezzi rimossi dal magazzino per cessazione del prodotto. */
+    SMALTIMENTO
 }

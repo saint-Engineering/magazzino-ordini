@@ -99,6 +99,9 @@ transazione.
 - Il prezzo della riga è quello del prodotto al momento dell'ordine.
 - Annullare restituisce i pezzi al magazzino; un ordine spedito non si annulla.
 - Importi in `BigDecimal`, arrotondati al centesimo.
+- Il ruolo **Magazziniere (2)** può censire prodotti (con giacenza iniziale zero),
+  registrare carichi e smaltire scorte fuori assortimento; ogni variazione è tracciata
+  nei movimenti. Utenti e amministratori non possono effettuare queste operazioni.
 
 ## Usarlo come template (docente)
 
