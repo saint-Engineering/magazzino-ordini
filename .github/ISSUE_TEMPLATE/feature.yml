@@ -1,0 +1,54 @@
+name: Feature per il cloud agent
+description: Una feature scritta perché un agente la possa implementare senza fare domande
+title: "[feature] "
+labels: ["feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Una issue per un agente non può essere ambigua: l'agente non ti fa domande.
+        Scrivi regole verificabili, con i numeri di confine, e cosa NON va toccato.
+  - type: textarea
+    id: perche
+    attributes:
+      label: Perché
+      description: Chi la usa e cosa ci guadagna, in una o due frasi.
+      placeholder: Come magazziniere voglio ... per ...
+    validations:
+      required: true
+  - type: textarea
+    id: regole
+    attributes:
+      label: Regole
+      description: Numerate (R1, R2, ...), verificabili, con i valori di confine.
+      placeholder: |
+        - R1 ...
+        - R2 ...
+    validations:
+      required: true
+  - type: textarea
+    id: vincoli
+    attributes:
+      label: Vincoli
+      description: Architettura, test, build. Rimanda ai file del repo invece di riscriverli.
+      value: |
+        - Rispetta .github/instructions/architettura.instructions.md.
+        - Un test per ogni regola, con i confini. ./mvnw test deve essere verde.
+    validations:
+      required: true
+  - type: textarea
+    id: fuori-scope
+    attributes:
+      label: Fuori dallo scope
+      description: Cosa l'agente non deve modificare.
+    validations:
+      required: true
+  - type: checkboxes
+    id: pronta
+    attributes:
+      label: Prima di assegnarla a Copilot
+      options:
+        - label: Ogni regola si può verificare con un test o provando l'app
+          required: true
+        - label: Ho scritto i valori di confine
+          required: true

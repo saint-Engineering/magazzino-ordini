@@ -51,6 +51,23 @@ class PagineTest {
   }
 
   @Test
+  void spedireRichiedeIlCodiceEloMostraNelDettaglio() throws Exception {
+    MvcResult creazione = mvc
+        .perform(post("/ordini").with(csrf())
+            .param("cliente", "Ferramenta Bianchi")
+            .param("righe[0].codice", "GUA-L").param("righe[0].quantita", "1"))
+        .andExpect(status().is3xxRedirection()).andReturn();
+    String urlDettaglio = creazione.getResponse().getRedirectedUrl();
+
+    mvc.perform(post(urlDettaglio + "/spedisci").with(csrf())
+        .param("codiceTracking", "IT123456789IT"))
+        .andExpect(status().is3xxRedirection());
+
+    mvc.perform(get(urlDettaglio)).andExpect(status().isOk())
+        .andExpect(content().string(containsString("IT123456789IT")));
+  }
+
+  @Test
   void ordineInesistente() throws Exception {
     mvc.perform(get("/ordini/9999")).andExpect(status().isNotFound());
   }

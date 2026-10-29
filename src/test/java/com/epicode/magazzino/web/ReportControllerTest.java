@@ -72,7 +72,7 @@ class ReportControllerTest {
         LocalDateTime.of(2026, 10, 28, 12, 0)));
 
     try {
-      ordineService.spedisci(ordine.getId());
+      ordineService.spedisci(ordine.getId(), "IT123456789IT");
 
       mvc.perform(get("/report/ordini").param("cliente", "Cliente Report"))
           .andExpect(status().isOk())

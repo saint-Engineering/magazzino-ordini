@@ -64,4 +64,14 @@ class OrdineServiceTest {
         NuovoOrdine richiesta = new NuovoOrdine("Bianchi", List.of());
         assertThrows(RichiestaNonValidaException.class, () -> ordini.crea(richiesta));
     }
+
+    @Test
+    void spedisceEConservaIlCodiceDiTracking() {
+        Ordine ordine = ordini.crea(new NuovoOrdine("Bianchi",
+                List.of(new NuovoOrdine.Riga("T-VITI", 1))));
+
+        ordini.spedisci(ordine.getId(), "IT123456789IT");
+
+        assertEquals("IT123456789IT", ordini.trova(ordine.getId()).getCodiceTracking());
+    }
 }
