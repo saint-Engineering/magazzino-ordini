@@ -10,6 +10,7 @@ import com.epicode.magazzino.model.RichiestaNonValidaException;
 import com.epicode.magazzino.model.RisorsaNonTrovataException;
 import com.epicode.magazzino.model.ScortaInsufficienteException;
 import com.epicode.magazzino.repository.ProdottoRepository;
+import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,6 +29,9 @@ class OrdineServiceTest {
 
     @Autowired
     private ProdottoRepository prodotti;
+
+    @Autowired
+    private EntityManager entityManager;
 
     @BeforeEach
     void prodottiDiTest() {
@@ -71,6 +75,9 @@ class OrdineServiceTest {
                 List.of(new NuovoOrdine.Riga("T-VITI", 1))));
 
         ordini.spedisci(ordine.getId(), "IT123456789IT");
+
+        entityManager.flush();
+        entityManager.clear();
 
         assertEquals("IT123456789IT", ordini.trova(ordine.getId()).getCodiceTracking());
     }

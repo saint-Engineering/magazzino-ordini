@@ -169,25 +169,44 @@ class OrdineTest {
     }
 
     @Test
-    void spedireSalvaIlCodiceDiTrackingNelFormatoPrevisto() {
+    void spedireAccettaIlCodiceDiTrackingEsatto() {
         Ordine ordine = new Ordine("Rossi", ADESSO);
 
-        ordine.spedisci(" IT123456789IT ");
+        ordine.spedisci("IT123456789IT");
 
         assertEquals(StatoOrdine.SPEDITO, ordine.getStato());
         assertEquals("IT123456789IT", ordine.getCodiceTracking());
     }
 
     @Test
-    void spedireRifiutaCodiceTrackingAssenteONonValido() {
-        Ordine ordine = new Ordine("Rossi", ADESSO);
+    void spedireRifiutaTrackingAssenteESenzaCambiareLoStato() {
+        for (String codice : new String[] {null, "", "   "}) {
+            Ordine ordine = new Ordine("Rossi", ADESSO);
 
-        assertThrows(RichiestaNonValidaException.class, () -> ordine.spedisci(null));
-        assertThrows(RichiestaNonValidaException.class, () -> ordine.spedisci(""));
-        assertThrows(RichiestaNonValidaException.class, () -> ordine.spedisci("IT12345678IT"));
-        assertThrows(RichiestaNonValidaException.class, () -> ordine.spedisci("IT123456789FR"));
-        assertEquals(StatoOrdine.CONFERMATO, ordine.getStato());
-        assertEquals(null, ordine.getCodiceTracking());
+            assertThrows(RichiestaNonValidaException.class, () -> ordine.spedisci(codice));
+            assertEquals(StatoOrdine.CONFERMATO, ordine.getStato());
+            assertEquals(null, ordine.getCodiceTracking());
+        }
+    }
+
+    @Test
+    void spedireRifiutaCodiciCheNonRispettanoIlFormatoEsatto() {
+        for (String codice : new String[] {
+                "IT12345678IT",
+                "IT1234567890IT",
+                "it123456789IT",
+                "IT123456789it",
+                " IT123456789IT",
+                "IT123456789IT ",
+                "IT123 56789IT",
+                "IT١٢٣٤٥٦٧٨٩IT"
+        }) {
+            Ordine ordine = new Ordine("Rossi", ADESSO);
+
+            assertThrows(RichiestaNonValidaException.class, () -> ordine.spedisci(codice));
+            assertEquals(StatoOrdine.CONFERMATO, ordine.getStato());
+            assertEquals(null, ordine.getCodiceTracking());
+        }
     }
 
     @Test

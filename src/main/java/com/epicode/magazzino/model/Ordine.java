@@ -109,11 +109,11 @@ public class Ordine {
         if (stato != StatoOrdine.CONFERMATO) {
             throw new OperazioneNonConsentitaException("Si spedisce solo un ordine confermato");
         }
-        if (codiceTracking == null || !codiceTracking.strip().matches("IT[0-9]{9}IT")) {
+        if (codiceTracking == null || !codiceTracking.matches("IT[0-9]{9}IT")) {
             throw new RichiestaNonValidaException(
                     "Il codice di tracking deve avere il formato IT123456789IT");
         }
-        this.codiceTracking = codiceTracking.strip();
+        this.codiceTracking = codiceTracking;
         stato = StatoOrdine.SPEDITO;
     }
 
