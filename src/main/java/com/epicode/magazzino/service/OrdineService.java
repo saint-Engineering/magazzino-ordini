@@ -66,9 +66,9 @@ public class OrdineService {
                 .orElseThrow(() -> new RisorsaNonTrovataException("Ordine " + id + " non trovato"));
     }
 
-    public Ordine spedisci(Long id, String codiceTracking) {
+    public Ordine spedisci(Long id) {
         Ordine ordine = trova(id);
-        ordine.spedisci(codiceTracking);
+        ordine.spedisci();
         return ordine;
     }
 

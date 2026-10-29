@@ -45,9 +45,6 @@ public class Ordine {
     @Column(nullable = false)
     private StatoOrdine stato;
 
-    @Column(length = 13)
-    private String codiceTracking;
-
     @OneToMany(mappedBy = "ordine", cascade = CascadeType.ALL, orphanRemoval = true,
             fetch = FetchType.EAGER)
     private List<RigaOrdine> righe = new ArrayList<>();
@@ -105,15 +102,10 @@ public class Ordine {
         return totale().add(spedizione());
     }
 
-    public void spedisci(String codiceTracking) {
+    public void spedisci() {
         if (stato != StatoOrdine.CONFERMATO) {
             throw new OperazioneNonConsentitaException("Si spedisce solo un ordine confermato");
         }
-        if (codiceTracking == null || !codiceTracking.strip().matches("IT[0-9]{9}IT")) {
-            throw new RichiestaNonValidaException(
-                    "Il codice di tracking deve avere il formato IT123456789IT");
-        }
-        this.codiceTracking = codiceTracking.strip();
         stato = StatoOrdine.SPEDITO;
     }
 
@@ -144,10 +136,6 @@ public class Ordine {
 
     public StatoOrdine getStato() {
         return stato;
-    }
-
-    public String getCodiceTracking() {
-        return codiceTracking;
     }
 
     public List<RigaOrdine> getRighe() {
