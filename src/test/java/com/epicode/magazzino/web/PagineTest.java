@@ -1,6 +1,7 @@
 package com.epicode.magazzino.web;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -65,6 +66,9 @@ class PagineTest {
 
     mvc.perform(get(urlDettaglio)).andExpect(status().isOk())
         .andExpect(content().string(containsString("IT123456789IT")));
+
+    mvc.perform(get("/ordini")).andExpect(status().isOk())
+        .andExpect(content().string(not(containsString("IT123456789IT"))));
   }
 
   @Test
