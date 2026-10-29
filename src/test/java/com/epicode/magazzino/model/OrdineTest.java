@@ -194,6 +194,7 @@ class OrdineTest {
         for (String codice : new String[] {
                 "IT12345678IT",
                 "IT1234567890IT",
+                "IT123456789FR",
                 "it123456789IT",
                 "IT123456789it",
                 " IT123456789IT",
