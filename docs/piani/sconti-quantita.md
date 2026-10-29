@@ -1,4 +1,4 @@
-# Sconti per quantita e spedizione (M6 - G1)
+# Piano — Sconti per quantità e spedizione (M6 · G1)
 
 ## Specifica
 
@@ -25,3 +25,8 @@ Le quantita minori o uguali a zero restano invalide secondo la validazione esist
 3. Coprire i confini degli sconti, `HALF_UP`, aggiunte ripetute, totale merce, soglie 149,99/150,00 euro e valori mostrati dalle pagine.
 4. Verificare anche la soglia applicata dopo lo sconto, i casi di quantita non valida e il flusso di riassortimento/movimenti.
 5. Eseguire `.\mvnw.cmd test`; le verifiche di mutazione della soglia 10 → 11 sono riportate nei test solo se effettivamente eseguite.
+
+I test coinvolti sono `ScontoQuantitaTest` (confini), `OrdineTest` e
+`OrdineScontiTest` (importi, soglia e righe aggregate), `PagineTest`
+(presentazione dei valori). `test-regole` ne esamina la copertura senza modifiche;
+`genera-test-regole` genera test dalla specifica senza modificare la produzione.

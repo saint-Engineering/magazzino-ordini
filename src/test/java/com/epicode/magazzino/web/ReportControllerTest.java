@@ -43,10 +43,10 @@ class ReportControllerTest {
 
   @Test
   void reportOrdiniMostraSoloGliOrdiniDelClienteRichiesto() throws Exception {
-    Ordine ordineRichiesto = ordini.save(new Ordine("Ferramenta Report",
-        LocalDateTime.of(2026, 10, 28, 10, 0)));
-    Ordine altroOrdine = ordini.save(new Ordine("Cliente Diverso",
-        LocalDateTime.of(2026, 10, 28, 11, 0)));
+    Ordine ordineRichiesto = ordini.save(
+        new Ordine("Ferramenta Report", LocalDateTime.of(2026, 10, 28, 10, 0)));
+    Ordine altroOrdine = ordini.save(
+        new Ordine("Cliente Diverso", LocalDateTime.of(2026, 10, 28, 11, 0)));
 
     try {
       mvc.perform(get("/report/ordini").param("cliente", "Ferramenta Report"))
@@ -54,7 +54,8 @@ class ReportControllerTest {
           .andExpect(content().string(containsString("Ferramenta Report")))
           .andExpect(content().string(not(containsString("Cliente Diverso"))));
     } finally {
-      ordini.deleteAllById(List.of(ordineRichiesto.getId(), altroOrdine.getId()));
+      ordini
+          .deleteAllById(List.of(ordineRichiesto.getId(), altroOrdine.getId()));
     }
   }
 
@@ -67,9 +68,10 @@ class ReportControllerTest {
   }
 
   @Test
-  void reportOrdiniNonMostraOrdiniSpeditiConClienteSqlInjection() throws Exception {
-    Ordine ordine = ordini.save(new Ordine("Cliente Report",
-        LocalDateTime.of(2026, 10, 28, 12, 0)));
+  void reportOrdiniNonMostraOrdiniSpeditiConClienteSqlInjection()
+      throws Exception {
+    Ordine ordine = ordini.save(
+        new Ordine("Cliente Report", LocalDateTime.of(2026, 10, 28, 12, 0)));
 
     try {
       ordineService.spedisci(ordine.getId());
@@ -79,43 +81,79 @@ class ReportControllerTest {
           .andExpect(content().string(containsStringIgnoringCase("spedito")));
 
       mvc.perform(get("/report/ordini").param("cliente", "' or 1=1; --"))
-          .andExpect(status().isOk())
-          .andExpect(content().string(not(containsStringIgnoringCase("spedito"))));
+          .andExpect(status().isOk()).andExpect(
+              content().string(not(containsStringIgnoringCase("spedito"))));
     } finally {
       ordini.deleteById(ordine.getId());
     }
   }
 
   @Test
-  void intestazioneCodificaCaratteriHtmlNelModelloUrlEncoded() throws Exception {
+  void intestazioneCodificaCaratteriHtmlNelModelloUrlEncoded()
+      throws Exception {
     verificaIntestazioneCodificata(get(URI.create(
         "/report/intestazione?modello=%3Cbutton%20onClick=%22window.open(%27https://www.google.com%27)"
             + "%22%3EClick%20%26%20Me%3C/button%3E")));
   }
 
   @Test
-  void intestazioneCodificaCaratteriHtmlNelModelloInTestoNormale() throws Exception {
+  void intestazioneCodificaCaratteriHtmlNelModelloInTestoNormale()
+      throws Exception {
     verificaIntestazioneCodificata(get("/report/intestazione").param("modello",
         "<button onClick=\"window.open('https://www.google.com')\">Click & Me</button>"));
   }
 
   @Test
-  void intestazioneSostituisceSoloIlSegnapostoDataConsentito() throws Exception {
-    String annoCorrente = LocalDateTime.now(clock).format(DateTimeFormatter.ofPattern("yyyy"));
+  void intestazioneSostituisceSoloIlSegnapostoDataConsentito()
+      throws Exception {
+    String annoCorrente = LocalDateTime.now(clock)
+        .format(DateTimeFormatter.ofPattern("yyyy"));
 
-    mvc.perform(get("/report/intestazione")
-            .param("modello", "Report ${date:yyyy} ${env:PATH}"))
-        .andExpect(status().isOk())
-        .andExpect(content().string(containsString("Report " + annoCorrente + " ${env:PATH}")));
+    mvc.perform(get("/report/intestazione").param("modello",
+        "Report ${date:yyyy} ${env:PATH}")).andExpect(status().isOk())
+        .andExpect(content()
+            .string(containsString("Report " + annoCorrente + " ${env:PATH}")));
   }
 
-  private void verificaIntestazioneCodificata(MockHttpServletRequestBuilder richiesta)
+  @Test
+  void intestazioneTestoMantieneHtmlComeTestoESostituisceLaData()
       throws Exception {
-    mvc.perform(richiesta)
-        .andExpect(status().isOk())
+    String data = LocalDateTime.now(clock)
+        .format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+    mvc.perform(get("/report/intestazione-testo").param("modello",
+        "<b>{data}</b> ${env:PATH} ${date:yyyy}")).andExpect(status().isOk())
+        .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_PLAIN))
+        .andExpect(
+            content().string("<b>" + data + "</b> ${env:PATH} ${date:yyyy}"));
+  }
+
+  @Test
+  void intestazioneConFormatoDataNonValidoRestituisceErrore() throws Exception {
+    mvc.perform(get("/report/intestazione").param("modello", "${date:invalid}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(content().string("Formato data non valido."));
+  }
+
+  @Test
+  @WithMockUser(roles = "MAGAZZINIERE")
+  void magazziniereNonAccedeAEntrambeLeIntestazioni() throws Exception {
+    mvc.perform(get("/report/intestazione").param("modello", "Report"))
+        .andExpect(status().isForbidden());
+    mvc.perform(get("/report/intestazione-testo").param("modello", "Report"))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void reportConNomeValidoMaAssenteRestituisceNonTrovato() throws Exception {
+    mvc.perform(get("/report/file").param("nome", "report-inesistente.csv"))
+        .andExpect(status().isNotFound());
+  }
+
+  private void verificaIntestazioneCodificata(
+      MockHttpServletRequestBuilder richiesta) throws Exception {
+    mvc.perform(richiesta).andExpect(status().isOk())
         .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
-        .andExpectAll(
-            content().string(not(containsString("<"))),
+        .andExpectAll(content().string(not(containsString("<"))),
             content().string(not(containsString(">"))),
             content().string(containsString("&#x26;")),
             content().string(containsString("&#x3c;")),

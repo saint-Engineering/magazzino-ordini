@@ -1,6 +1,8 @@
 package com.epicode.magazzino.web;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -9,27 +11,39 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
+import com.epicode.magazzino.service.CatalogoService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.annotation.Transactional;
 
 /** Le pagine principali si aprono e il form crea davvero un ordine. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @WithMockUser(roles = "UTENTE")
+@Transactional
 class PagineTest {
 
   @Autowired
   private MockMvc mvc;
 
+  @Autowired
+  private CatalogoService catalogo;
+
   @Test
   void elencoProdotti() throws Exception {
     mvc.perform(get("/prodotti")).andExpect(status().isOk())
-        .andExpect(content().string(containsString("Trapano a batteria 18V")));
+        .andExpect(content().string(containsString("Trapano a batteria 18V")))
+        .andExpect(content().string(containsString("Da riassortire")))
+        .andExpect(content().string(containsString("sottoscorta")))
+        .andExpect(content()
+            .string(not(containsString("/prodotti/GUA-L/riassortimento"))))
+        .andExpect(content()
+            .string(not(containsString("/prodotti/GUA-L/smaltimento"))));
   }
 
   @Test
@@ -81,9 +95,32 @@ class PagineTest {
   @Test
   @WithMockUser(roles = "MAGAZZINIERE")
   void riassortimentoNonValidoMostraLErrore() throws Exception {
-    mvc.perform(post("/prodotti/GUA-L/riassortimento").with(csrf()).param("quantita", "0"))
+    int disponibili = catalogo.trova("GUA-L").getDisponibili();
+    mvc.perform(post("/prodotti/GUA-L/riassortimento").with(csrf())
+        .param("quantita", "0")).andExpect(status().isOk())
+        .andExpect(content().string(
+            containsString("La quantità da riassortire va da 1 a 1000")));
+    assertEquals(disponibili, catalogo.trova("GUA-L").getDisponibili());
+  }
+
+  @Test
+  @WithMockUser(roles = "MAGAZZINIERE")
+  void ilFormRiassortimentoMostraIConfiniAmmessi() throws Exception {
+    mvc.perform(get("/prodotti/GUA-L/riassortimento"))
         .andExpect(status().isOk())
-        .andExpect(content().string(containsString("La quantità da riassortire va da 1 a 1000")));
+        .andExpect(content().string(containsString("min=\"1\"")))
+        .andExpect(content().string(containsString("max=\"1000\"")))
+        .andExpect(content().string(containsString("step=\"1\"")))
+        .andExpect(content().string(containsString("maxlength=\"250\"")));
+  }
+
+  @Test
+  @WithMockUser(roles = "MAGAZZINIERE")
+  void caricoSenzaCsrfVieneRifiutato() throws Exception {
+    int disponibili = catalogo.trova("GUA-L").getDisponibili();
+    mvc.perform(post("/prodotti/GUA-L/riassortimento").param("quantita", "1"))
+        .andExpect(status().isForbidden());
+    assertEquals(disponibili, catalogo.trova("GUA-L").getDisponibili());
   }
 
   @Test
@@ -110,20 +147,20 @@ class PagineTest {
         .param("quantita", "1")).andExpect(status().isForbidden());
     mvc.perform(get("/prodotti/GUA-L/smaltimento"))
         .andExpect(status().isForbidden());
-    mvc.perform(post("/prodotti/GUA-L/smaltimento").with(csrf())
-        .param("quantita", "1")).andExpect(status().isForbidden());
+    mvc.perform(
+        post("/prodotti/GUA-L/smaltimento").with(csrf()).param("quantita", "1"))
+        .andExpect(status().isForbidden());
   }
 
   @Test
   @WithMockUser(roles = "MAGAZZINIERE")
   void magazziniereCensisceProdottiERegistraSmaltimenti() throws Exception {
-    mvc.perform(get("/prodotti/nuovo")).andExpect(status().isOk())
-        .andExpect(content().string(containsString("Censimento nuovo prodotto")));
+    mvc.perform(get("/prodotti/nuovo")).andExpect(status().isOk()).andExpect(
+        content().string(containsString("Censimento nuovo prodotto")));
 
-    mvc.perform(post("/prodotti/nuovo").with(csrf())
-        .param("codice", "WEB-NEW").param("nome", "Prodotto web")
-        .param("prezzo", "2.50").param("scortaMinima", "2"))
-        .andExpect(status().is3xxRedirection())
+    mvc.perform(post("/prodotti/nuovo").with(csrf()).param("codice", "WEB-NEW")
+        .param("nome", "Prodotto web").param("prezzo", "2.50")
+        .param("scortaMinima", "2")).andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrl("/prodotti"));
     mvc.perform(get("/prodotti")).andExpect(status().isOk())
         .andExpect(content().string(containsString("WEB-NEW")))

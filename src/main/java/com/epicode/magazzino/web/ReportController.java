@@ -1,84 +1,59 @@
 package com.epicode.magazzino.web;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.Clock;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import com.epicode.magazzino.model.NomeFileReport;
+import com.epicode.magazzino.model.RichiestaNonValidaException;
+import com.epicode.magazzino.service.ReportService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.HtmlUtils;
 
-/**
- * Modulo report consegnato dal fornitore esterno.
- * Funziona, ma nessuno lo ha mai rivisto.
- */
 @Controller
 @RequestMapping("/report")
 public class ReportController {
 
-    private static final Pattern SEGNAPOSTO_DATA = Pattern.compile("\\$\\{date:([^{}]+)}");
+  private final ReportService report;
 
-    // Credenziali del server FTP del fornitore, per l'invio notturno dei report
-    private static final String FTP_UTENTE = "magazzino";
-    private static final String FTP_PASSWORD = "Fornitore2026!";
+  public ReportController(ReportService report) {
+    this.report = report;
+  }
 
-    private final JdbcTemplate jdbc;
-    private final Clock clock;
+  @GetMapping("/ordini")
+  public String ordini(@RequestParam String cliente, Model model) {
+    model.addAttribute("righe", report.ordiniDi(cliente));
+    model.addAttribute("titolo", "Ordini di " + cliente);
+    return "report";
+  }
 
-    public ReportController(JdbcTemplate jdbc, Clock clock) {
-        this.jdbc = jdbc;
-        this.clock = clock;
-    }
+  @GetMapping("/file")
+  public ResponseEntity<byte[]> file(@RequestParam String nome) {
+    return ResponseEntity.ok().contentType(MediaType.parseMediaType("text/csv"))
+        .body(report.file(new NomeFileReport(nome)));
+  }
 
-    /** Ordini di un cliente: /report/ordini?cliente=Rossi */
-    @GetMapping("/ordini")
-    public String ordini(@RequestParam String cliente, Model model) {
-        String sql = "SELECT id, cliente, stato FROM ordini WHERE cliente = ?";
-        model.addAttribute("righe", jdbc.queryForList(sql, cliente));
-        model.addAttribute("titolo", "Ordini di <b>" + cliente + "</b>");
-        return "report";
-    }
+  @GetMapping("/intestazione")
+  public ResponseEntity<String> intestazione(@RequestParam String modello) {
+    return ResponseEntity.ok().contentType(MediaType.TEXT_HTML)
+        .body(HtmlUtils.htmlEscapeHex(report.intestazioneStorica(modello)));
+  }
 
-    /** Scarica un report già generato: /report/file?nome=ordini-ottobre.csv */
-    @GetMapping("/file")
-    @ResponseBody
-    public byte[] file(@RequestParam String nome) throws IOException {
-        return Files.readAllBytes(Path.of("report", nome));
-    }
+  @GetMapping("/intestazione-testo")
+  public ResponseEntity<String> intestazioneTesto(
+      @RequestParam String modello) {
+    return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN)
+        .body(report.intestazione(modello));
+  }
 
-    /** Intestazione con segnaposto: /report/intestazione?modello=Report del ${date:dd/MM/yyyy} */
-    @GetMapping(value = "/intestazione", produces = MediaType.TEXT_HTML_VALUE)
-    @ResponseBody
-    public String intestazione(@RequestParam String modello) {
-        Matcher matcher = SEGNAPOSTO_DATA.matcher(modello);
-        StringBuffer intestazione = new StringBuffer();
-        while (matcher.find()) {
-            String data;
-            try {
-                data = LocalDate.now(clock).format(DateTimeFormatter.ofPattern(matcher.group(1)));
-            } catch (IllegalArgumentException exception) {
-                throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "Formato data non valido.", exception);
-            }
-            matcher.appendReplacement(intestazione, Matcher.quoteReplacement(data));
-        }
-        matcher.appendTail(intestazione);
-        return HtmlUtils.htmlEscapeHex(intestazione.toString());
-    }
-
-    String credenzialiFtp() {
-        return FTP_UTENTE + ":" + FTP_PASSWORD;
-    }
+  @ExceptionHandler(RichiestaNonValidaException.class)
+  public ResponseEntity<String> richiestaNonValida(
+      RichiestaNonValidaException e) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .contentType(MediaType.TEXT_PLAIN).body(e.getMessage());
+  }
 }

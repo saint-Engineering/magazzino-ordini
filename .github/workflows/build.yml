@@ -1,0 +1,54 @@
+# Pre-deploy (M6 · G3): build e test su ogni push e PR verso main;
+# su un tag v* una release in BOZZA con il jar. Pubblicarla e fare il deploy
+# è una decisione di una persona (Modulo 8).
+name: Build e release in bozza
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+
+# Minimo privilegio: lettura per tutti i job, scrittura solo dove serve.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+      - name: Build e test
+        run: ./mvnw -B verify
+      - uses: actions/upload-artifact@v7
+        with:
+          name: magazzino-ordini-jar
+          path: target/*.jar
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+      - name: Jar per la release (i test li ha già passati il job build)
+        run: ./mvnw -B -DskipTests package
+      - name: Release in bozza
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "$GITHUB_REF_NAME" target/*.jar
+          --draft --generate-notes --title "Magazzino & Ordini $GITHUB_REF_NAME"

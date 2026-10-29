@@ -26,13 +26,13 @@
             <td class="num" th:text="${r.quantita}">10</td>
             <td class="num" th:text="${#numbers.formatDecimal(r.prezzoUnitario, 1, 'POINT', 2, 'COMMA')} + ' €'">6,90 €</td>
             <td class="num" th:text="${r.scontoPercentuale()} + '%'">5%</td>
-            <td class="num" th:text="${#numbers.formatDecimal(r.subtotale(), 1, 'POINT', 2, 'COMMA')} + ' €'">69,00 €</td>
+            <td class="num" th:text="${#numbers.formatDecimal(r.subtotale(), 1, 'POINT', 2, 'COMMA')} + ' €'">65,55 €</td>
         </tr>
         </tbody>
         <tfoot>
         <tr>
             <th colspan="4">Totale merce</th>
-            <th class="num" th:text="${#numbers.formatDecimal(ordine.totale(), 1, 'POINT', 2, 'COMMA')} + ' €'">69,00 €</th>
+            <th class="num" th:text="${#numbers.formatDecimal(ordine.totale(), 1, 'POINT', 2, 'COMMA')} + ' €'">65,55 €</th>
         </tr>
         <tr>
             <td colspan="4">Spedizione</td>

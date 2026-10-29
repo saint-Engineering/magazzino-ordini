@@ -4,7 +4,7 @@
 <body>
 <header th:replace="~{fragments :: menu}"></header>
 <main>
-    <h1 th:utext="${titolo}">Report</h1>
+    <h1 th:text="${titolo}">Report</h1>
     <table>
         <thead>
         <tr>
@@ -14,10 +14,10 @@
         </tr>
         </thead>
         <tbody>
-        <tr th:each="r : ${righe}">
-            <td th:text="${r['ID']}">1</td>
-            <td th:text="${r['CLIENTE']}">Rossi</td>
-            <td th:text="${r['STATO']}">CONFERMATO</td>
+        <tr th:each="o : ${righe}">
+            <td th:text="${o.id}">1</td>
+            <td th:text="${o.cliente}">Rossi</td>
+            <td th:text="${o.stato}">CONFERMATO</td>
         </tr>
         </tbody>
     </table>

@@ -19,3 +19,9 @@ Thymeleaf, H2 in memoria, JUnit 5.
 ## Build e verifica
 - `./mvnw test` (Windows: `.\mvnw.cmd test`) resta verde dopo ogni modifica.
 - Una feature non è finita senza test che ne verifichino le regole.
+
+
+## ENvironmentL
+OS: Debian GNU/Linux stable senza Z11 o Wayland, solo il minimo delle applicazioni necessarie installate
+
+OpenJDK 25 or later

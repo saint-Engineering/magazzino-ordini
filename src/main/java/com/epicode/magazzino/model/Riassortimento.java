@@ -6,18 +6,18 @@ package com.epicode.magazzino.model;
  */
 public record Riassortimento(int quantita, String nota) {
 
-    public static final int MASSIMO_PEZZI = 1000;
-    public static final int MASSIMO_NOTA = 200;
+  public static final int MASSIMO_PEZZI = 1000;
+  public static final int MASSIMO_NOTA = 250;
 
-    public Riassortimento {
-        if (quantita < 1 || quantita > MASSIMO_PEZZI) {
-            throw new RichiestaNonValidaException(
-                    "La quantità da riassortire va da 1 a " + MASSIMO_PEZZI);
-        }
-        nota = (nota == null || nota.isBlank()) ? null : nota.strip();
-        if (nota != null && nota.length() > MASSIMO_NOTA) {
-            throw new RichiestaNonValidaException(
-                    "La nota può avere al massimo " + MASSIMO_NOTA + " caratteri");
-        }
+  public Riassortimento {
+    if (quantita < 1 || quantita > MASSIMO_PEZZI) {
+      throw new RichiestaNonValidaException(
+          "La quantità da riassortire va da 1 a " + MASSIMO_PEZZI);
     }
+    if (nota != null && nota.length() > MASSIMO_NOTA) {
+      throw new RichiestaNonValidaException(
+          "La nota può avere al massimo " + MASSIMO_NOTA + " caratteri");
+    }
+    nota = (nota == null || nota.isBlank()) ? null : nota.strip();
+  }
 }

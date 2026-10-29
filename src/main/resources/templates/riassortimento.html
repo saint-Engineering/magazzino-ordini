@@ -10,10 +10,10 @@
     <form th:action="@{/prodotti/{codice}/riassortimento(codice=${prodotto.codice})}"
           th:object="${form}" method="post">
         <label>Pezzi arrivati (da 1 a 1000)
-            <input type="number" th:field="*{quantita}">
+            <input type="number" th:field="*{quantita}" min="1" max="1000" step="1" required>
         </label>
-        <label>Nota (facoltativa, massimo 200 caratteri)
-            <input type="text" th:field="*{nota}" size="60">
+        <label>Nota (facoltativa, massimo 250 caratteri)
+            <input type="text" th:field="*{nota}" size="60" maxlength="250">
         </label>
         <button type="submit" class="primario">Registra</button>
     </form>

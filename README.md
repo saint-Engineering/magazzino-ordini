@@ -143,6 +143,28 @@ Per verificare dopo il merge:
 
 ## Come è fatto
 
+### Contratti delle intestazioni dei report
+
+Le due rotte richiedono il ruolo **UTENTE** e il parametro `modello`:
+
+| Rotta GET | Segnaposto | Risposta |
+|---|---|---|
+| `/report/intestazione` | `${date:dd/MM/yyyy}` oppure `${date:yyyy}` | `text/html`, con escaping HTML esadecimale dell'intero risultato |
+| `/report/intestazione-testo` | `{data}` (data in formato `dd/MM/yyyy`) | `text/plain`, senza interpretazione HTML |
+
+Esempi di `modello`: `Report del ${date:dd/MM/yyyy}` per la rotta storica,
+`Report del {data}` per quella testuale. Codificare il parametro nella URL.
+Le date usano il `Clock` dell'applicazione. La rotta storica accetta i formati
+di `DateTimeFormatter` e risponde **400** per formati non validi; nessuna rotta
+interpreta espressioni come `${sys:user.home}` o `${env:PATH}`.
+Le due sintassi non sono intercambiabili e non selezionano automaticamente
+il tipo di risposta. Gli esempi vulnerabili del corso descrivono codice storico,
+non il comportamento corrente.
+
+`/report/file` accetta solo nomi CSV semplici nella cartella configurata:
+nome non valido -> **400**, file assente -> **404**. Errori di lettura inattesi
+non sono convertiti in download vuoti o risposte di successo.
+
 ```
 src/main/java/com/epicode/magazzino
 ├── model/        entità e regole di business (Prodotto, Ordine, RigaOrdine, StatoOrdine, eccezioni)
@@ -187,3 +209,6 @@ esercizio della giornata 1.
 | Giornata | Consegna |
 |---|---|
 | M6 · G1 — Feature authoring e test generation | [docs/corso/M6-G1.md](docs/corso/M6-G1.md) · soluzione: branch `soluzione/m6-g1`, tag `m6-g1-end` |
+| M6 · G2 — Code review automatizzata e architecture compliance | [docs/corso/M6-G2.md](docs/corso/M6-G2.md) · soluzione: branch `soluzione/m6-g2`, tag `m6-g2-end` |
+| M6 · G3 — Security scanning e pre-deploy | [docs/corso/M6-G3.md](docs/corso/M6-G3.md) · codice del fornitore: tag `m6-g3-fornitore` · soluzione: branch `soluzione/m6-g3`, tag `m6-g3-end` |
+| M6 · G4 — Composizione e coordinamento di più agenti | [docs/corso/M6-G4.md](docs/corso/M6-G4.md) · soluzione: branch `soluzione/m6-g4`, tag `m6-g4-end` |

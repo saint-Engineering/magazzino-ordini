@@ -14,88 +14,90 @@ import java.time.LocalDateTime;
 @Entity
 public class MovimentoMagazzino {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @Column(nullable = false)
-    private LocalDateTime creatoIl;
+  @Column(nullable = false)
+  private LocalDateTime creatoIl;
 
-    @ManyToOne(optional = false)
-    private Prodotto prodotto;
+  @ManyToOne(optional = false)
+  private Prodotto prodotto;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private TipoMovimento tipo;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private TipoMovimento tipo;
 
-    private int quantita;
+  private int quantita;
 
-    @Column(length = Riassortimento.MASSIMO_NOTA)
-    private String nota;
+  @Column(length = Riassortimento.MASSIMO_NOTA)
+  private String nota;
 
-    private Long ordineId;
+  private Long ordineId;
 
-    protected MovimentoMagazzino() {
-        // per JPA
-    }
+  protected MovimentoMagazzino() {
+    // per JPA
+  }
 
-    private MovimentoMagazzino(LocalDateTime creatoIl, Prodotto prodotto, TipoMovimento tipo,
-                               int quantita, String nota, Long ordineId) {
-        this.creatoIl = creatoIl;
-        this.prodotto = prodotto;
-        this.tipo = tipo;
-        this.quantita = quantita;
-        this.nota = nota;
-        this.ordineId = ordineId;
-    }
+  private MovimentoMagazzino(LocalDateTime creatoIl, Prodotto prodotto,
+      TipoMovimento tipo, int quantita, String nota, Long ordineId) {
+    this.creatoIl = creatoIl;
+    this.prodotto = prodotto;
+    this.tipo = tipo;
+    this.quantita = quantita;
+    this.nota = nota;
+    this.ordineId = ordineId;
+  }
 
-    public static MovimentoMagazzino carico(Prodotto prodotto, Riassortimento richiesta,
-                                            LocalDateTime quando) {
-        return new MovimentoMagazzino(quando, prodotto, TipoMovimento.CARICO,
-                richiesta.quantita(), richiesta.nota(), null);
-    }
+  public static MovimentoMagazzino carico(Prodotto prodotto,
+      Riassortimento richiesta, LocalDateTime quando) {
+    return new MovimentoMagazzino(quando, prodotto, TipoMovimento.CARICO,
+        richiesta.quantita(), richiesta.nota(), null);
+  }
 
-    public static MovimentoMagazzino scarico(RigaOrdine riga, Long ordineId, LocalDateTime quando) {
-        return new MovimentoMagazzino(quando, riga.getProdotto(), TipoMovimento.SCARICO,
-                riga.getQuantita(), null, ordineId);
-    }
+  public static MovimentoMagazzino scarico(RigaOrdine riga, Long ordineId,
+      LocalDateTime quando) {
+    return new MovimentoMagazzino(quando, riga.getProdotto(),
+        TipoMovimento.SCARICO, riga.getQuantita(), null, ordineId);
+  }
 
-    public static MovimentoMagazzino reso(RigaOrdine riga, Long ordineId, LocalDateTime quando) {
-        return new MovimentoMagazzino(quando, riga.getProdotto(), TipoMovimento.RESO,
-                riga.getQuantita(), null, ordineId);
-    }
+  public static MovimentoMagazzino reso(RigaOrdine riga, Long ordineId,
+      LocalDateTime quando) {
+    return new MovimentoMagazzino(quando, riga.getProdotto(),
+        TipoMovimento.RESO, riga.getQuantita(), null, ordineId);
+  }
 
-    public static MovimentoMagazzino smaltimento(Prodotto prodotto, Smaltimento richiesta,
-                                                  LocalDateTime quando) {
-        return new MovimentoMagazzino(quando, prodotto, TipoMovimento.SMALTIMENTO,
-                richiesta.quantita(), richiesta.nota(), null);
-    }
+  public static MovimentoMagazzino smaltimento(Prodotto prodotto,
+      Smaltimento richiesta, LocalDateTime quando) {
+    return new MovimentoMagazzino(quando, prodotto, TipoMovimento.SMALTIMENTO,
+        richiesta.quantita(), richiesta.nota(), null);
+  }
 
-    public Long getId() {
-        return id;
-    }
+  public Long getId() {
+    return id;
+  }
 
-    public LocalDateTime getCreatoIl() {
-        return creatoIl;
-    }
+  public LocalDateTime getCreatoIl() {
+    return creatoIl;
+  }
 
-    public Prodotto getProdotto() {
-        return prodotto;
-    }
+  public Prodotto getProdotto() {
+    return prodotto;
+  }
 
-    public TipoMovimento getTipo() {
-        return tipo;
-    }
+  public TipoMovimento getTipo() {
+    return tipo;
+  }
 
-    public int getQuantita() {
-        return quantita;
-    }
+  public int getQuantita() {
+    return quantita;
+  }
 
-    public String getNota() {
-        return nota;
-    }
+  public String getNota() {
+    return nota;
+  }
 
-    public Long getOrdineId() {
-        return ordineId;
-    }
+  public Long getOrdineId() {
+    return ordineId;
+  }
 }

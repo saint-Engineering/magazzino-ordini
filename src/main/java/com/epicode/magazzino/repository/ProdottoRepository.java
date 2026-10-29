@@ -7,9 +7,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ProdottoRepository extends JpaRepository<Prodotto, Long> {
 
-    Optional<Prodotto> findByCodice(String codice);
+  Optional<Prodotto> findByCodice(String codice);
 
-    boolean existsByCodice(String codice);
+  boolean existsByCodice(String codice);
 
-    List<Prodotto> findAllByOrderByNomeAsc();
+  List<Prodotto> findAllByOrderByNomeAsc();
 }

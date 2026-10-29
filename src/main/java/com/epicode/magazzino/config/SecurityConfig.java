@@ -29,7 +29,8 @@ public class SecurityConfig {
             .requestMatchers("/utenti/**").hasRole("AMMINISTRATORE")
             .requestMatchers("/profilo/**").authenticated()
             .requestMatchers("/prodotti/nuovo", "/prodotti/*/riassortimento",
-                "/prodotti/*/smaltimento").hasRole("MAGAZZINIERE")
+                "/prodotti/*/smaltimento")
+            .hasRole("MAGAZZINIERE")
             .requestMatchers("/", "/prodotti/**", "/movimenti/**")
             .hasAnyRole("UTENTE", "MAGAZZINIERE")
             .requestMatchers("/ordini/**", "/report/**").hasRole("UTENTE")
