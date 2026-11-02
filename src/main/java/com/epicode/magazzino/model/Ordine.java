@@ -105,7 +105,7 @@ public class Ordine {
         return totale().add(spedizione());
     }
 
-    public void spedisci(String codiceTracking) {
+    public void setCodiceTracking(String codiceTracking) {
         if (stato != StatoOrdine.CONFERMATO) {
             throw new OperazioneNonConsentitaException("Si spedisce solo un ordine confermato");
         }

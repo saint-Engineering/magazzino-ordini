@@ -14,6 +14,10 @@ public interface UtenteRepository extends JpaRepository<Utente, Long> {
 
   Optional<Utente> findByUsername(String username);
 
+  Optional<Utente> findByMcpKeyId(String mcpKeyId);
+
+  boolean existsByMcpKeyId(String mcpKeyId);
+
   boolean existsByUsername(String username);
 
   long countByRuolo(int ruolo);

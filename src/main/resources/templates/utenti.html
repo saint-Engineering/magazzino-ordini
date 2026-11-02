@@ -15,6 +15,7 @@
             <th>Cognome</th>
             <th>Ruolo</th>
             <th>Errori</th>
+            <th>Chiave MCP</th>
             <th>Azioni</th>
         </tr>
         </thead>
@@ -25,8 +26,19 @@
             <td th:text="${utente.cognome}">Cognome</td>
             <td th:text="${utente.ruolo == 0 ? 'Amministratore' : (utente.ruolo == 2 ? 'Magazziniere' : 'Utente')}">Utente</td>
             <td th:text="${utente.errori}">0</td>
+            <td th:text="${utente.chiaveMcpAttiva} ? 'Attiva' : 'Non configurata'">Non configurata</td>
             <td class="azioni">
                 <a th:href="@{/utenti/{id}/modifica(id=${utente.id})}">Modifica</a>
+                <form th:action="@{/utenti/{id}/chiave-mcp(id=${utente.id})}" method="post">
+                    <button type="submit"
+                            th:text="${utente.chiaveMcpAttiva} ? 'Rigenera/scarica chiave' : 'Genera/scarica chiave'">
+                        Genera/scarica chiave
+                    </button>
+                </form>
+                <form th:if="${utente.chiaveMcpAttiva}"
+                      th:action="@{/utenti/{id}/chiave-mcp/revoca(id=${utente.id})}" method="post">
+                    <button type="submit">Revoca chiave</button>
+                </form>
                 <form th:if="${utente.errori >= 3}" th:action="@{/utenti/{id}/sblocca(id=${utente.id})}" method="post">
                     <button type="submit">Sblocca</button>
                 </form>

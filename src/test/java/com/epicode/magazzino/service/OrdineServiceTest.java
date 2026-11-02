@@ -73,7 +73,6 @@ class OrdineServiceTest {
     void spedisceEConservaIlCodiceDiTracking() {
         Ordine ordine = ordini.crea(new NuovoOrdine("Bianchi",
                 List.of(new NuovoOrdine.Riga("T-VITI", 1))));
-
         ordini.spedisci(ordine.getId(), "IT123456789IT");
 
         entityManager.flush();

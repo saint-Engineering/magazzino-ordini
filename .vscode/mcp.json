@@ -1,13 +1,50 @@
 {
+  "inputs": [
+    {
+      "id": "mcp-user-api-key",
+      "type": "promptString",
+      "description": "Chiave MCP di un utente con ruolo UTENTE",
+      "password": true
+    },
+    {
+      "id": "mcp-magazzino-api-key",
+      "type": "promptString",
+      "description": "Chiave MCP di un utente con ruolo MAGAZZINIERE",
+      "password": true
+    },
+    {
+      "id": "mcp-admin-api-key",
+      "type": "promptString",
+      "description": "Chiave MCP di un utente con ruolo AMMINISTRATORE",
+      "password": true
+    }
+  ],
   "servers": {
     "github": {
       "type": "http",
       "url": "https://api.githubcopilot.com/mcp/",
       "headers": { "X-MCP-Toolsets": "repos,issues,pull_requests" }
     },
-    "magazzino": {
+    "USER": {
       "type": "http",
-      "url": "http://localhost:8080/mcp"
+      "url": "http://localhost:8080/mcp/user",
+      "headers": {
+        "Authorization": "Bearer ${input:mcp-user-api-key}"
+      }
+    },
+    "MAGAZZINO": {
+      "type": "http",
+      "url": "http://localhost:8080/mcp/magazzino",
+      "headers": {
+        "Authorization": "Bearer ${input:mcp-magazzino-api-key}"
+      }
+    },
+    "ADMIN": {
+      "type": "http",
+      "url": "http://localhost:8080/mcp/admin",
+      "headers": {
+        "Authorization": "Bearer ${input:mcp-admin-api-key}"
+      }
     },
     "playwright": {
       "type": "stdio",

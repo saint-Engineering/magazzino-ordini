@@ -1,8 +1,15 @@
 package com.epicode.magazzino.web;
 
 import com.epicode.magazzino.model.Utente;
+import com.epicode.magazzino.service.UtenteConChiaveMcp;
 import com.epicode.magazzino.service.UtenteService;
+import java.nio.charset.StandardCharsets;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,11 +44,12 @@ public class UtenteController {
   }
 
   @PostMapping("/nuovo")
-  public String crea(@ModelAttribute("form") UtenteForm form, Model model) {
+  public Object crea(@ModelAttribute("form") UtenteForm form, Model model) {
     try {
-      utenti.crea(form.getUsername(), form.getPassword(), form.getNome(),
-          form.getCognome(), form.getRuolo());
-      return "redirect:/utenti";
+      UtenteConChiaveMcp creato = utenti.crea(form.getUsername(),
+          form.getPassword(), form.getNome(), form.getCognome(),
+          form.getRuolo());
+      return fileChiave(creato.utente().getId(), creato.chiaveMcp());
     } catch (IllegalArgumentException | IllegalStateException
         | DataIntegrityViolationException e) {
       model.addAttribute("errore", e.getMessage());
@@ -99,5 +107,39 @@ public class UtenteController {
       redirect.addFlashAttribute("errore", e.getMessage());
     }
     return "redirect:/utenti";
+  }
+
+  @PostMapping("/{id}/chiave-mcp")
+  public ResponseEntity<byte[]> generaChiaveMcp(@PathVariable Long id) {
+    return fileChiave(id, utenti.generaChiaveMcp(id));
+  }
+
+  @PostMapping("/{id}/chiave-mcp/revoca")
+  public String revocaChiaveMcp(@PathVariable Long id,
+      RedirectAttributes redirect) {
+    try {
+      utenti.revocaChiaveMcp(id);
+      redirect.addFlashAttribute("messaggio", "Chiave MCP revocata");
+    } catch (IllegalArgumentException e) {
+      redirect.addFlashAttribute("errore", e.getMessage());
+    }
+    return "redirect:/utenti";
+  }
+
+  private ResponseEntity<byte[]> fileChiave(Long id, String chiave) {
+    byte[] contenuto = ("Authorization: Bearer " + chiave
+        + System.lineSeparator()
+        + "Conserva questo file in modo sicuro: la chiave non sarà mostrata "
+        + "di nuovo.").getBytes(StandardCharsets.UTF_8);
+    return ResponseEntity.ok()
+        .contentType(new MediaType("text", "plain", StandardCharsets.UTF_8))
+        .cacheControl(CacheControl.noStore())
+        .header(HttpHeaders.PRAGMA, "no-cache")
+        .header(HttpHeaders.CONTENT_DISPOSITION,
+            ContentDisposition.attachment()
+                .filename("chiave-mcp-utente-" + id + ".txt",
+                    StandardCharsets.UTF_8)
+                .build().toString())
+        .body(contenuto);
   }
 }

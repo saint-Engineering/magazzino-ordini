@@ -146,7 +146,7 @@ class OrdineTest {
     void unOrdineSpeditoNonSiAnnulla() {
         Ordine ordine = new Ordine("Rossi", ADESSO);
         ordine.aggiungiRiga(trapano, 1);
-        ordine.spedisci("IT123456789IT");
+        ordine.setCodiceTracking("IT123456789IT");
         assertThrows(OperazioneNonConsentitaException.class, ordine::annulla);
         assertEquals(4, trapano.getDisponibili());
     }
@@ -164,7 +164,7 @@ class OrdineTest {
     void nonSiAggiungonoRigheAUnOrdineSpedito() {
         Ordine ordine = new Ordine("Rossi", ADESSO);
         ordine.aggiungiRiga(viti, 1);
-        ordine.spedisci("IT123456789IT");
+        ordine.setCodiceTracking("IT123456789IT");
         assertThrows(OperazioneNonConsentitaException.class, () -> ordine.aggiungiRiga(viti, 1));
     }
 
@@ -172,7 +172,7 @@ class OrdineTest {
     void spedireAccettaIlCodiceDiTrackingEsatto() {
         Ordine ordine = new Ordine("Rossi", ADESSO);
 
-        ordine.spedisci("IT123456789IT");
+        ordine.setCodiceTracking("IT123456789IT");
 
         assertEquals(StatoOrdine.SPEDITO, ordine.getStato());
         assertEquals("IT123456789IT", ordine.getCodiceTracking());
@@ -183,7 +183,7 @@ class OrdineTest {
         for (String codice : new String[] {null, "", "   "}) {
             Ordine ordine = new Ordine("Rossi", ADESSO);
 
-            assertThrows(RichiestaNonValidaException.class, () -> ordine.spedisci(codice));
+            assertThrows(RichiestaNonValidaException.class, () -> ordine.setCodiceTracking(codice));
             assertEquals(StatoOrdine.CONFERMATO, ordine.getStato());
             assertEquals(null, ordine.getCodiceTracking());
         }
@@ -204,7 +204,7 @@ class OrdineTest {
         }) {
             Ordine ordine = new Ordine("Rossi", ADESSO);
 
-            assertThrows(RichiestaNonValidaException.class, () -> ordine.spedisci(codice));
+            assertThrows(RichiestaNonValidaException.class, () -> ordine.setCodiceTracking(codice));
             assertEquals(StatoOrdine.CONFERMATO, ordine.getStato());
             assertEquals(null, ordine.getCodiceTracking());
         }

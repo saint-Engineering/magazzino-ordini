@@ -3,8 +3,15 @@ package com.epicode.magazzino.service;
 import com.epicode.magazzino.model.RuoloUtente;
 import com.epicode.magazzino.model.Utente;
 import com.epicode.magazzino.repository.UtenteRepository;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.Base64;
+import java.util.HexFormat;
 import java.util.List;
+import java.util.Optional;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +31,9 @@ public class UtenteService {
       .getLogger(UtenteService.class);
   private static final Pattern PASSWORD_VALIDA = Pattern
       .compile("[\\x20-\\x7E]{8,128}");
+  private static final Pattern CHIAVE_MCP_VALIDA = Pattern
+      .compile("mcp_([A-Za-z0-9_-]{16})\\.([A-Za-z0-9_-]{43})");
+  private static final SecureRandom GENERATORE_CASUALE = new SecureRandom();
 
   private final UtenteRepository utenti;
   private final PasswordEncoder passwordEncoder;
@@ -72,15 +82,68 @@ public class UtenteService {
         .orElseThrow(() -> new IllegalArgumentException("Utente non trovato"));
   }
 
-  public Utente crea(String username, String password, String nome,
+  public UtenteConChiaveMcp crea(String username, String password, String nome,
       String cognome, int ruolo) {
     validaDatiUtente(username, nome, cognome, ruolo);
     validaPassword(password);
     if (utenti.existsByUsername(username)) {
       throw new IllegalArgumentException("Username già utilizzato");
     }
-    return utenti.save(new Utente(username, passwordEncoder.encode(password),
-        nome, cognome, ruolo));
+    Utente utente = utenti.save(new Utente(username,
+        passwordEncoder.encode(password), nome, cognome, ruolo));
+    String chiave = generaChiaveMcp(utente);
+    return new UtenteConChiaveMcp(utente, chiave);
+  }
+
+  public String generaChiaveMcp(Long id) {
+    return generaChiaveMcp(trova(id));
+  }
+
+  public void revocaChiaveMcp(Long id) {
+    trova(id).revocaChiaveMcp();
+  }
+
+  @Transactional(readOnly = true)
+  public Optional<Utente> autenticaChiaveMcp(String chiave) {
+    if (chiave == null) {
+      return Optional.empty();
+    }
+    Matcher matcher = CHIAVE_MCP_VALIDA.matcher(chiave);
+    if (!matcher.matches()) {
+      return Optional.empty();
+    }
+    Utente utente = utenti.findByMcpKeyId(matcher.group(1)).orElse(null);
+    if (utente == null) {
+      return Optional.empty();
+    }
+    byte[] hashRicevuto = hashChiaveMcp(chiave);
+    return utente.corrispondeHashChiaveMcp(hashRicevuto)
+        ? Optional.of(utente) : Optional.empty();
+  }
+
+  private String generaChiaveMcp(Utente utente) {
+    byte[] idCasuale = new byte[12];
+    byte[] segretoCasuale = new byte[32];
+    String id;
+    do {
+      GENERATORE_CASUALE.nextBytes(idCasuale);
+      id = Base64.getUrlEncoder().withoutPadding().encodeToString(idCasuale);
+    } while (utenti.existsByMcpKeyId(id));
+    GENERATORE_CASUALE.nextBytes(segretoCasuale);
+    String segreto = Base64.getUrlEncoder().withoutPadding()
+        .encodeToString(segretoCasuale);
+    String chiave = "mcp_" + id + "." + segreto;
+    utente.impostaChiaveMcp(id, HexFormat.of().formatHex(hashChiaveMcp(chiave)));
+    return chiave;
+  }
+
+  private byte[] hashChiaveMcp(String chiave) {
+    try {
+      return MessageDigest.getInstance("SHA-256")
+          .digest(chiave.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    } catch (NoSuchAlgorithmException e) {
+      throw new IllegalStateException("SHA-256 non disponibile", e);
+    }
   }
 
   public Utente modifica(Long id, String username, String nome, String cognome,

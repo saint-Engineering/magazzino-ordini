@@ -1,6 +1,7 @@
 package com.epicode.magazzino.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -91,14 +92,45 @@ class UtenteServiceTest {
 
     assertTrue(utente.getPassword().startsWith("$2"));
     assertTrue(passwordEncoder.matches("Password1!", utente.getPassword()));
+    assertTrue(utente.isChiaveMcpAttiva());
     assertThrows(IllegalArgumentException.class, () -> utenti.crea("admin",
         "Password1!", "Nome", "Cognome", RuoloUtente.UTENTE.getValore()));
   }
 
   @Test
+  void chiaveMcpVieneMemorizzataComeHashEVerificataPerUtente() {
+    UtenteConChiaveMcp creato = utenti.crea("chiave-mcp", "Password1!",
+        "Nome", "Cognome", RuoloUtente.UTENTE.getValore());
+    String chiave = creato.chiaveMcp();
+    Utente utente = creato.utente();
+
+    assertTrue(chiave.matches("mcp_[A-Za-z0-9_-]{16}\\.[A-Za-z0-9_-]{43}"));
+    assertFalse(utente.corrispondeHashChiaveMcp(
+        chiave.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+    assertTrue(utenti.autenticaChiaveMcp(chiave).isPresent());
+    assertTrue(utenti.autenticaChiaveMcp(chiave + "x").isEmpty());
+    assertTrue(utenti.autenticaChiaveMcp("non-valida").isEmpty());
+  }
+
+  @Test
+  void rigenerareORevocareUnaChiaveMcpInvalidaLaPrecedente() {
+    UtenteConChiaveMcp creato = utenti.crea("rotazione-mcp",
+        "Password1!", "Nome", "Cognome",
+        RuoloUtente.MAGAZZINIERE.getValore());
+
+    String nuovaChiave = utenti.generaChiaveMcp(creato.utente().getId());
+    assertTrue(utenti.autenticaChiaveMcp(creato.chiaveMcp()).isEmpty());
+    assertTrue(utenti.autenticaChiaveMcp(nuovaChiave).isPresent());
+
+    utenti.revocaChiaveMcp(creato.utente().getId());
+    assertTrue(utenti.autenticaChiaveMcp(nuovaChiave).isEmpty());
+    assertFalse(creato.utente().isChiaveMcpAttiva());
+  }
+
+  @Test
   void ruoloMagazziniereVieneTradottoNellAutoritaCorretta() {
     Utente magazziniere = utenti.crea("magazziniere", "Password1!", "Nome",
-        "Cognome", RuoloUtente.MAGAZZINIERE.getValore());
+        "Cognome", RuoloUtente.MAGAZZINIERE.getValore()).utente();
 
     assertEquals("ROLE_MAGAZZINIERE",
         magazziniere.getAuthorities().iterator().next().getAuthority());
@@ -130,6 +162,6 @@ class UtenteServiceTest {
 
   private Utente creaUtente(String username) {
     return utenti.crea(username, "Password1!", "Nome", "Cognome",
-        RuoloUtente.UTENTE.getValore());
+        RuoloUtente.UTENTE.getValore()).utente();
   }
 }

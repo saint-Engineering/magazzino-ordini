@@ -6,6 +6,7 @@ import com.epicode.magazzino.service.OrdineService;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.McpTool.McpAnnotations;
 import org.springframework.ai.mcp.annotation.McpToolParam;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 
 /**
@@ -39,6 +40,7 @@ public class MagazzinoTools {
       annotations = @McpAnnotations(title = "Cerca prodotti",
           readOnlyHint = true, destructiveHint = false, idempotentHint = true,
           openWorldHint = false))
+  @PreAuthorize("hasAnyRole('UTENTE', 'MAGAZZINIERE')")
   public ElencoProdotti cercaProdotti(@McpToolParam(
       description = "Testo da cercare, es. 'viti' oppure 'TAS'") String testo) {
     return ElencoProdotti.di(catalogo.cerca(testo), MASSIMO_PRODOTTI);
@@ -51,6 +53,7 @@ public class MagazzinoTools {
       annotations = @McpAnnotations(title = "Prodotti sotto scorta",
           readOnlyHint = true, destructiveHint = false, idempotentHint = true,
           openWorldHint = false))
+  @PreAuthorize("hasAnyRole('UTENTE', 'MAGAZZINIERE')")
   public ElencoProdotti prodottiSottoScorta() {
     return ElencoProdotti.di(catalogo.daRiassortire(), MASSIMO_PRODOTTI);
   }
@@ -63,6 +66,7 @@ public class MagazzinoTools {
       annotations = @McpAnnotations(title = "Dettaglio ordine",
           readOnlyHint = true, destructiveHint = false, idempotentHint = true,
           openWorldHint = false))
+  @PreAuthorize("hasRole('UTENTE')")
   public OrdineMcp dettaglioOrdine(@McpToolParam(
       description = "Numero dell'ordine, es. 3") long numero) {
     return OrdineMcp.da(ordini.trova(numero));
@@ -77,6 +81,7 @@ public class MagazzinoTools {
       annotations = @McpAnnotations(title = "Riassortisci un prodotto",
           readOnlyHint = false, destructiveHint = false,
           idempotentHint = false, openWorldHint = false))
+  @PreAuthorize("hasRole('MAGAZZINIERE')")
   public EsitoRiassortimento riassortisciProdotto(
       @McpToolParam(description = "Codice del prodotto, es. TAS-8") String codice,
       @McpToolParam(description = "Pezzi da aggiungere, da 1 a 1000") int quantita,

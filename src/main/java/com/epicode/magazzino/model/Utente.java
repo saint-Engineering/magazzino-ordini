@@ -1,5 +1,7 @@
 package com.epicode.magazzino.model;
 
+import java.security.MessageDigest;
+import java.util.HexFormat;
 import java.util.Collection;
 import java.util.List;
 import org.springframework.security.core.GrantedAuthority;
@@ -38,6 +40,12 @@ public class Utente implements UserDetails {
 
   @Column(nullable = false, columnDefinition = "integer not null default 0")
   private int errori;
+
+  @Column(name = "mcp_key_id", unique = true, length = 16)
+  private String mcpKeyId;
+
+  @Column(name = "mcp_key_hash", length = 64)
+  private String mcpKeyHash;
 
   protected Utente() {
   }
@@ -78,6 +86,10 @@ public class Utente implements UserDetails {
     return errori;
   }
 
+  public boolean isChiaveMcpAttiva() {
+    return mcpKeyId != null;
+  }
+
   public void aggiornaDati(String username, String nome, String cognome,
       int ruolo) {
     RuoloUtente.daValore(ruolo);
@@ -89,6 +101,21 @@ public class Utente implements UserDetails {
 
   public void aggiornaPassword(String passwordHash) {
     this.passwordHash = passwordHash;
+  }
+
+  public void impostaChiaveMcp(String id, String hash) {
+    this.mcpKeyId = id;
+    this.mcpKeyHash = hash;
+  }
+
+  public boolean corrispondeHashChiaveMcp(byte[] hash) {
+    return mcpKeyHash != null
+        && MessageDigest.isEqual(HexFormat.of().parseHex(mcpKeyHash), hash);
+  }
+
+  public void revocaChiaveMcp() {
+    this.mcpKeyId = null;
+    this.mcpKeyHash = null;
   }
 
   public void incrementaErrori() {

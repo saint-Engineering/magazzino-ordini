@@ -6,6 +6,10 @@
 <main>
     <h1 th:text="${modifica} ? 'Modifica utente' : 'Aggiungi utente'">Utente</h1>
     <div th:replace="~{fragments :: avvisi}"></div>
+    <p th:if="${!modifica}">
+        Dopo il salvataggio verra scaricato il file con la nuova chiave MCP.
+        La chiave viene mostrata una sola volta.
+    </p>
     <form th:action="${modifica} ? @{/utenti/{id}/modifica(id=${utente.id})} : @{/utenti/nuovo}"
           th:object="${form}" method="post">
         <label>Username

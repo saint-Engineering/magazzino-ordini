@@ -3,12 +3,17 @@ package com.epicode.magazzino.mcp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.epicode.magazzino.model.Prodotto;
+import com.epicode.magazzino.model.Ordine;
+import com.epicode.magazzino.repository.OrdineRepository;
 import com.epicode.magazzino.repository.ProdottoRepository;
+import com.epicode.magazzino.repository.UtenteRepository;
 import com.epicode.magazzino.service.CatalogoService;
+import com.epicode.magazzino.service.UtenteService;
 import io.modelcontextprotocol.client.McpClient;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
@@ -22,6 +27,11 @@ import io.modelcontextprotocol.spec.McpSchema.Role;
 import io.modelcontextprotocol.spec.McpSchema.TextContent;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
 import java.math.BigDecimal;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,6 +42,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
@@ -53,9 +64,21 @@ class MagazzinoMcpServerTest {
   private ProdottoRepository prodotti;
 
   @Autowired
+  private OrdineRepository ordiniRepository;
+
+  @Autowired
   private CatalogoService catalogo;
 
+  @Autowired
+  private UtenteRepository utentiRepository;
+
+  @Autowired
+  private UtenteService utenti;
+
   private McpSyncClient client;
+  private String chiaveUtente;
+  private String chiaveMagazziniere;
+  private String chiaveAmministratore;
 
   @BeforeEach
   void collega() {
@@ -63,8 +86,30 @@ class MagazzinoMcpServerTest {
       prodotti.save(new Prodotto(CODICE, "Prodotto per il test MCP",
           new BigDecimal("2.00"), 3, 500));
     }
-    client = McpClient.sync(HttpClientStreamableHttpTransport
-        .builder("http://localhost:" + porta).build()).build();
+    chiaveUtente = utenti.generaChiaveMcp(
+        utentiRepository.findByUsername("user").orElseThrow().getId());
+    chiaveMagazziniere = utenti.generaChiaveMcp(
+        utentiRepository.findByUsername("magazzinga").orElseThrow().getId());
+    chiaveAmministratore = utenti.generaChiaveMcp(
+        utentiRepository.findByUsername("admin").orElseThrow().getId());
+    collegaCome(chiaveUtente);
+  }
+
+  private void collegaCome(String chiave) {
+    String endpoint = chiave.equals(chiaveMagazziniere)
+        ? "/mcp/magazzino"
+        : chiave.equals(chiaveAmministratore) ? "/mcp/admin" : "/mcp/user";
+    if (client != null) {
+      client.closeGracefully();
+    }
+    client = McpClient
+        .sync(HttpClientStreamableHttpTransport
+            .builder("http://localhost:" + porta).endpoint(endpoint)
+            .httpRequestCustomizer(
+                (richiesta, metodo, uri, corpo, contesto) -> richiesta
+                    .header("Authorization", "Bearer " + chiave))
+            .build())
+        .build();
     client.initialize();
   }
 
@@ -74,8 +119,8 @@ class MagazzinoMcpServerTest {
   }
 
   private CallToolResult chiama(String tool, Map<String, Object> argomenti) {
-    return client.callTool(
-        CallToolRequest.builder(tool).arguments(argomenti).build());
+    return client
+        .callTool(CallToolRequest.builder(tool).arguments(argomenti).build());
   }
 
   private String testo(CallToolResult risultato) {
@@ -84,17 +129,35 @@ class MagazzinoMcpServerTest {
   }
 
   @Test
-  void quattroToolESoloQuelloCheScriveNonESolaLettura() {
+  void userEsponeSoloTreToolDiLettura() {
+    Map<String, Tool> tool = client.listTools().tools().stream()
+        .collect(Collectors.toMap(Tool::name, Function.identity()));
+
+    assertEquals(
+        Set.of("cerca_prodotti", "prodotti_sotto_scorta", "dettaglio_ordine"),
+        tool.keySet());
+    assertEquals("USER", client.getServerInfo().name());
+    assertTrue(tool.get("cerca_prodotti").annotations().readOnlyHint());
+    assertTrue(tool.get("prodotti_sotto_scorta").annotations().readOnlyHint());
+    assertTrue(tool.get("dettaglio_ordine").annotations().readOnlyHint());
+  }
+
+  @Test
+  void magazzinoEsponeIlRiassortimentoMaNonGliOrdini() {
+    collegaCome(chiaveMagazziniere);
     Map<String, Tool> tool = client.listTools().tools().stream()
         .collect(Collectors.toMap(Tool::name, Function.identity()));
 
     assertEquals(Set.of("cerca_prodotti", "prodotti_sotto_scorta",
-        "dettaglio_ordine", "riassortisci_prodotto"), tool.keySet());
+        "riassortisci_prodotto"), tool.keySet());
+    assertEquals("MAGAZZINO", client.getServerInfo().name());
     assertTrue(tool.get("cerca_prodotti").annotations().readOnlyHint());
-    assertTrue(tool.get("dettaglio_ordine").annotations().readOnlyHint());
+    assertTrue(tool.get("prodotti_sotto_scorta").annotations().readOnlyHint());
     assertFalse(tool.get("riassortisci_prodotto").annotations().readOnlyHint());
     assertFalse(
         tool.get("riassortisci_prodotto").annotations().destructiveHint());
+    assertEquals(List.of("piano-riordino"),
+        client.listPrompts().prompts().stream().map(Prompt::name).toList());
   }
 
   @Test
@@ -123,6 +186,7 @@ class MagazzinoMcpServerTest {
 
   @Test
   void unaQuantitaFuoriLimiteNonCambiaLaGiacenza() {
+    collegaCome(chiaveMagazziniere);
     int prima = catalogo.trova(CODICE).getDisponibili();
 
     CallToolResult risultato = chiama("riassortisci_prodotto",
@@ -135,6 +199,7 @@ class MagazzinoMcpServerTest {
 
   @Test
   void ilRiassortimentoAumentaLaGiacenza() {
+    collegaCome(chiaveMagazziniere);
     int prima = catalogo.trova(CODICE).getDisponibili();
 
     CallToolResult risultato = chiama("riassortisci_prodotto",
@@ -142,6 +207,156 @@ class MagazzinoMcpServerTest {
 
     assertFalse(Boolean.TRUE.equals(risultato.isError()));
     assertEquals(prima + 4, catalogo.trova(CODICE).getDisponibili());
+  }
+
+  @Test
+  void utenteNonPuoRiassortireTramiteMcp() {
+    int prima = catalogo.trova(CODICE).getDisponibili();
+
+    assertThrows(McpError.class, () -> chiama("riassortisci_prodotto",
+        Map.of("codice", CODICE, "quantita", 4)));
+    assertEquals(prima, catalogo.trova(CODICE).getDisponibili());
+  }
+
+  @Test
+  void utenteLeggeIlDettaglioOrdineConMcp() {
+    Ordine ordine = ordiniRepository
+        .save(new Ordine("Cliente MCP", LocalDateTime.of(2026, 11, 2, 10, 0)));
+
+    try {
+      CallToolResult risultato = chiama("dettaglio_ordine",
+          Map.of("numero", ordine.getId()));
+
+      assertFalse(Boolean.TRUE.equals(risultato.isError()));
+      assertTrue(testo(risultato).contains("Cliente MCP"));
+    } finally {
+      ordiniRepository.deleteById(ordine.getId());
+    }
+  }
+
+  @Test
+  void magazziniereNonAccedeAiDettagliOrdineMcp() {
+    Ordine ordine = ordiniRepository
+        .save(new Ordine("Cliente MCP", LocalDateTime.of(2026, 11, 2, 10, 0)));
+
+    try {
+      collegaCome(chiaveMagazziniere);
+
+      assertThrows(McpError.class,
+          () -> chiama("dettaglio_ordine", Map.of("numero", ordine.getId())));
+    } finally {
+      ordiniRepository.deleteById(ordine.getId());
+    }
+  }
+
+  @Test
+  void adminSiInizializzaSenzaToolNePrompt() {
+    collegaCome(chiaveAmministratore);
+
+    assertEquals("ADMIN", client.getServerInfo().name());
+    assertNull(client.getServerCapabilities().tools());
+    assertNull(client.getServerCapabilities().prompts());
+    assertThrows(IllegalStateException.class,
+        () -> chiama("cerca_prodotti", Map.of("testo", "T-MCP")));
+    assertThrows(McpError.class, () -> client
+        .getPrompt(GetPromptRequest.builder("piano-riordino").build()));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"tools/list", "tools/call", "prompts/list",
+      "prompts/get"})
+  void adminNonRegistraMetodiPerToolOPrompt(String metodo) throws Exception {
+    try (HttpClient http = HttpClient.newHttpClient()) {
+      HttpRequest inizializzazione = richiestaMcp("admin", chiaveAmministratore)
+          .POST(HttpRequest.BodyPublishers.ofString("""
+              {"jsonrpc":"2.0","id":1,"method":"initialize","params":{
+                "protocolVersion":"2025-03-26","capabilities":{},
+                "clientInfo":{"name":"test-admin","version":"1.0"}}}
+              """)).build();
+      HttpResponse<String> risposta = http.send(inizializzazione,
+          HttpResponse.BodyHandlers.ofString());
+      assertEquals(200, risposta.statusCode());
+      String sessione = risposta.headers().firstValue("Mcp-Session-Id")
+          .orElseThrow();
+      try {
+        HttpRequest richiesta = richiestaMcp("admin", chiaveAmministratore)
+            .header("Mcp-Session-Id", sessione)
+            .header("MCP-Protocol-Version", "2025-03-26")
+            .POST(HttpRequest.BodyPublishers.ofString("""
+                {"jsonrpc":"2.0","id":2,"method":"%s","params":{}}
+                """.formatted(metodo))).build();
+        HttpResponse<String> errore = http.send(richiesta,
+            HttpResponse.BodyHandlers.ofString());
+
+        assertEquals(200, errore.statusCode());
+        assertTrue(errore.body().contains("\"code\":-32601"), errore.body());
+      } finally {
+        http.send(
+            richiestaMcp("admin", chiaveAmministratore)
+                .header("Mcp-Session-Id", sessione).DELETE().build(),
+            HttpResponse.BodyHandlers.discarding());
+      }
+    }
+  }
+
+  private HttpRequest.Builder richiestaMcp(String endpoint, String chiave) {
+    return HttpRequest
+        .newBuilder(
+            URI.create("http://localhost:" + porta + "/mcp/" + endpoint))
+        .header("Authorization", "Bearer " + chiave)
+        .header("Content-Type", "application/json")
+        .header("Accept", "application/json, text/event-stream");
+  }
+
+  @ParameterizedTest
+  @CsvSource({"user, MAGAZZINO", "user, ADMIN", "magazzino, USER",
+      "magazzino, ADMIN", "admin, USER", "admin, MAGAZZINO"})
+  void ogniEndpointRifiutaLeChiaviDegliAltriRuoli(String endpoint, String ruolo)
+      throws Exception {
+    String chiave = switch (ruolo) {
+      case "USER" -> chiaveUtente;
+      case "MAGAZZINO" -> chiaveMagazziniere;
+      case "ADMIN" -> chiaveAmministratore;
+      default -> throw new IllegalArgumentException(ruolo);
+    };
+    HttpRequest richiesta = richiestaMcp(endpoint, chiave)
+        .POST(HttpRequest.BodyPublishers.ofString("{}")).build();
+
+    try (HttpClient http = HttpClient.newHttpClient()) {
+      assertEquals(403, http
+          .send(richiesta, HttpResponse.BodyHandlers.ofString()).statusCode());
+    }
+  }
+
+  @Test
+  void unaSessioneUserNonEValidaSulServerMagazzino() throws Exception {
+    try (HttpClient http = HttpClient.newHttpClient()) {
+      HttpRequest inizializzazione = richiestaMcp("user", chiaveUtente)
+          .POST(HttpRequest.BodyPublishers.ofString("""
+              {"jsonrpc":"2.0","id":1,"method":"initialize","params":{
+                "protocolVersion":"2025-03-26","capabilities":{},
+                "clientInfo":{"name":"test-isolamento","version":"1.0"}}}
+              """)).build();
+      HttpResponse<String> risposta = http.send(inizializzazione,
+          HttpResponse.BodyHandlers.ofString());
+      assertEquals(200, risposta.statusCode());
+      String sessione = risposta.headers().firstValue("Mcp-Session-Id")
+          .orElseThrow();
+      HttpRequest richiesta = richiestaMcp("magazzino", chiaveMagazziniere)
+          .header("Mcp-Session-Id", sessione)
+          .header("MCP-Protocol-Version", "2025-03-26")
+          .POST(HttpRequest.BodyPublishers.ofString(
+              "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\"}"))
+          .build();
+
+      assertEquals(404, http
+          .send(richiesta, HttpResponse.BodyHandlers.ofString()).statusCode());
+      http.send(
+          HttpRequest.newBuilder(inizializzazione.uri())
+              .header("Authorization", "Bearer " + chiaveUtente)
+              .header("Mcp-Session-Id", sessione).DELETE().build(),
+          HttpResponse.BodyHandlers.discarding());
+    }
   }
 
   @Test
@@ -161,8 +376,8 @@ class MagazzinoMcpServerTest {
   void ilPromptSenzaCoperturaUsaDueVolteLaScortaMinima() {
     int prima = catalogo.trova(CODICE).getDisponibili();
 
-    GetPromptResult risultato = client.getPrompt(
-        GetPromptRequest.builder("piano-riordino").build());
+    GetPromptResult risultato = client
+        .getPrompt(GetPromptRequest.builder("piano-riordino").build());
 
     assertEquals("Piano di riordino", risultato.description());
     assertEquals(1, risultato.messages().size());

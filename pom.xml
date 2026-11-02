@@ -64,7 +64,7 @@
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
 
-		<!-- MCP server (M7): i tool del magazzino per gli agenti, su Streamable HTTP /mcp -->
+		<!-- MCP server (M7): Streamable HTTP /mcp/user, /mcp/magazzino, /mcp/admin -->
 		<dependency>
 			<groupId>org.springframework.ai</groupId>
 			<artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>

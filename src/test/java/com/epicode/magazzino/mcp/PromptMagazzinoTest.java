@@ -72,7 +72,7 @@ class PromptMagazzinoTest {
 
   private String testoPrompt(Integer copertura) {
     return ((TextContent) prompt.pianoRiordino(copertura).messages().get(0)
-        .content()).text();
+      .content()).text();
   }
 
   @ParameterizedTest
