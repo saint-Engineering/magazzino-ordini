@@ -1,21 +1,60 @@
+# =============================================================================
+# Issue form: il modulo "Feature per il cloud agent" (M6 · G4).
+# Si apre da Issues -> New issue. GitHub mostra i campi qui sotto e rifiuta
+# l'invio se mancano quelli obbligatori. È il primo controllo della pipeline.
+#
+# Attenzione: il modulo vale solo dalla pagina web. Una issue creata da API,
+# da gh o da un agente con MCP non viene validata.
+#
+# Documentazione:
+# - Sintassi del file:  https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-issue-forms
+# - Tipi di campo:      https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-githubs-form-schema
+#
+# NB: dentro i blocchi "|" (value, placeholder) un "#" è testo, non un
+# commento: i commenti vanno sempre fuori da quei blocchi.
+# =============================================================================
+
+# Nome del modulo nella pagina "New issue" (obbligatorio, unico nel repo).
 name: Feature per il cloud agent
+# Spiegazione sotto il nome (obbligatoria).
 description: Una feature scritta perché un agente la possa implementare senza fare domande
+# Titolo già compilato: chi scrive aggiunge la sintesi dopo "[feature] ".
 title: "[feature] "
+# Label aggiunte in automatico. Devono esistere nel repo, altrimenti vengono
+# ignorate.
 labels: ["feature"]
+# Altri campi di primo livello:
+# assignees: ["fkrelli"]   # assegnatari automatici (non Copilot: lo scegli tu,
+#                          # con il custom agent giusto)
+# projects: ["fkrelli/1"]  # aggiunge la issue a un GitHub Project
+# type: "Feature"          # issue type, se l'organizzazione li usa
+
+# I campi del modulo, nell'ordine in cui appaiono.
+# Tipi possibili: markdown, textarea, input, dropdown, checkboxes.
 body:
+  # markdown: solo testo informativo, non finisce nella issue.
   - type: markdown
     attributes:
       value: |
         Una issue per un agente non può essere ambigua: l'agente non ti fa domande.
         Scrivi regole verificabili, con i numeri di confine, e cosa NON va toccato.
+
+  # textarea: campo di testo su più righe.
   - type: textarea
+    # id: nome interno del campo (unico). Serve anche per precompilarlo da URL:
+    # .../issues/new?template=feature.yml&perche=Come+magazziniere...
     id: perche
     attributes:
+      # label: il titolo del campo; nella issue diventa "### Perché".
       label: Perché
+      # description: aiuto sotto il titolo.
       description: Chi la usa e cosa ci guadagna, in una o due frasi.
+      # placeholder: testo grigio di esempio, sparisce quando scrivi.
       placeholder: Come magazziniere voglio ... per ...
     validations:
+      # Obbligatorio: senza questo campo la issue non si invia.
       required: true
+
   - type: textarea
     id: regole
     attributes:
@@ -24,18 +63,24 @@ body:
       placeholder: |
         - R1 ...
         - R2 ...
+      # Altre opzioni di textarea:
+      # render: java   # mostra il testo come blocco di codice (utile per log)
     validations:
       required: true
+
   - type: textarea
     id: vincoli
     attributes:
       label: Vincoli
       description: Architettura, test, build. Rimanda ai file del repo invece di riscriverli.
+      # value: testo GIÀ scritto nel campo (si può modificare), a differenza
+      # del placeholder che è solo un esempio.
       value: |
         - Rispetta .github/instructions/architettura.instructions.md.
         - Un test per ogni regola, con i confini. ./mvnw test deve essere verde.
     validations:
       required: true
+
   - type: textarea
     id: fuori-scope
     attributes:
@@ -43,6 +88,9 @@ body:
       description: Cosa l'agente non deve modificare.
     validations:
       required: true
+
+  # checkboxes: caselle da spuntare; con required: true l'invio è bloccato
+  # finché non sono spuntate. Nella issue diventano "- [X] ...".
   - type: checkboxes
     id: pronta
     attributes:
@@ -52,3 +100,24 @@ body:
           required: true
         - label: Ho scritto i valori di confine
           required: true
+
+  # Esempi di altri tipi di campo, da aggiungere se servono:
+  #
+  # - type: input                  # una riga sola
+  #   id: issue-collegata
+  #   attributes:
+  #     label: Issue collegata
+  #     placeholder: "#12"
+  #
+  # - type: dropdown               # scelta da un elenco
+  #   id: area
+  #   attributes:
+  #     label: Area del codice
+  #     options: [Ordini, Magazzino, Report]
+  #     multiple: false
+  #   validations:
+  #     required: true
+
+# Per altre impostazioni della pagina "New issue" (link esterni, disattivare le
+# issue vuote) si usa un file a parte: .github/ISSUE_TEMPLATE/config.yml
+# https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository

@@ -1,19 +1,58 @@
+# =============================================================================
 # Aggiornamenti di versione: Dependabot apre una PR a settimana per le dipendenze
 # Maven e per le action dei workflow. Gli aggiornamenti di sicurezza (security updates)
 # si attivano a parte, in Settings → Advanced Security.
+#
+# Ogni PR di Dependabot è una PR come le altre: passa da build, CodeQL,
+# Copilot code review e da te prima del merge.
+#
+# Tutte le opzioni:
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+# =============================================================================
+
+# Versione del formato del file: è sempre 2.
 version: 2
+
+# Un blocco per ogni "ecosistema" (gestore di pacchetti) da tenere aggiornato.
 updates:
-  - package-ecosystem: "github-actions"
-    directory: "/" # Per GitHub Actions include /.github/workflows.
+  # 1. Dipendenze Maven: legge il pom.xml.
+  - package-ecosystem: "maven"
+    # Cartella in cui si trova il pom.xml ("/" = radice del repo).
+    # Con più moduli: directories: ["/", "/modulo-a"].
+    directory: "/"
+    # Ogni quanto controlla. Valori: daily, weekly, monthly
+    # (e cron con cronjob: per orari precisi).
     schedule:
       interval: "weekly"
+      # day: "monday"           # giorno della settimana per weekly
+      # time: "06:00"           # ora
+      # timezone: "Europe/Rome"
+    # Al massimo 5 PR di versione aperte insieme (predefinito: 5).
+    # Con 0 si disattivano le PR di versione ma restano quelle di sicurezza.
     open-pull-requests-limit: 5
-    commit-message:
-      prefix: "ci(deps)"
-  - package-ecosystem: "maven"
+    # Altri campi utili:
+    # labels: ["dipendenze", "maven"]   # etichette sulle PR
+    # assignees: ["fkrelli"]            # a chi assegnarle
+    # commit-message:
+    #   prefix: "deps"                  # es. "deps: bump spring-boot ..."
+    # groups:                           # una PR sola per più dipendenze
+    #   spring:
+    #     patterns: ["org.springframework*"]
+    # ignore:                           # dipendenze o versioni da saltare
+    #   - dependency-name: "org.springframework.boot:*"
+    #     update-types: ["version-update:semver-major"]
+
+  # 2. Action usate nei workflow (actions/checkout, actions/setup-java, ...):
+  #    legge i file in .github/workflows/.
+  - package-ecosystem: "github-actions"
+    # Per le action si indica sempre "/": Dependabot sa dove cercare.
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: "build(deps)"
+
+  # Altri ecosistemi possibili: npm, pip, gradle, docker, nuget, ...
+  # Esempio, se un giorno ci fosse un Dockerfile:
+  # - package-ecosystem: "docker"
+  #   directory: "/"
+  #   schedule:
+  #     interval: "weekly"

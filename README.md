@@ -212,3 +212,6 @@ esercizio della giornata 1.
 | M6 · G2 — Code review automatizzata e architecture compliance | [docs/corso/M6-G2.md](docs/corso/M6-G2.md) · soluzione: branch `soluzione/m6-g2`, tag `m6-g2-end` |
 | M6 · G3 — Security scanning e pre-deploy | [docs/corso/M6-G3.md](docs/corso/M6-G3.md) · codice del fornitore: tag `m6-g3-fornitore` · soluzione: branch `soluzione/m6-g3`, tag `m6-g3-end` |
 | M6 · G4 — Composizione e coordinamento di più agenti | [docs/corso/M6-G4.md](docs/corso/M6-G4.md) · soluzione: branch `soluzione/m6-g4`, tag `m6-g4-end` |
+| M7 · G1 — Architettura e ruolo degli MCP server | [docs/corso/M7-G1.md](docs/corso/M7-G1.md) · soluzione: branch `soluzione/m7-g1`, tag `m7-g1-end` |
+| M7 · G2 — Progettazione e configurazione di un MCP server | [docs/corso/M7-G2.md](docs/corso/M7-G2.md) · soluzione: branch `soluzione/m7-g2`, tag `m7-g2-end` |
+| M7 · G3 — Integrazione con la toolchain e la pipeline | [docs/corso/M7-G3.md](docs/corso/M7-G3.md) · soluzione: branch `soluzione/m7-g3`, tag `m7-g3-end` |

@@ -1,54 +1,171 @@
+# =============================================================================
 # Pre-deploy (M6 · G3): build e test su ogni push e PR verso main;
 # su un tag v* una release in BOZZA con il jar. Pubblicarla e fare il deploy
 # è una decisione di una persona (Modulo 8).
+#
+# Come si legge un workflow: QUANDO parte (on) -> con quali PERMESSI
+# (permissions) -> quali JOB esegue, ognuno su una macchina nuova, con i suoi
+# STEP in ordine.
+#
+# Documentazione
+# - Sintassi dei workflow:  https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions
+# - Eventi che lo avviano:  https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows
+# - Espressioni ${{ }}:     https://docs.github.com/en/actions/learn-github-actions/expressions
+# - Contesti (github, ...): https://docs.github.com/en/actions/learn-github-actions/contexts
+# - Sicurezza dei workflow: https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions
+# =============================================================================
+
+# Nome mostrato nella scheda Actions e nei check della PR
+# ("Build e release in bozza / build").
 name: Build e release in bozza
 
+# -----------------------------------------------------------------------------
+# QUANDO PARTE
+# -----------------------------------------------------------------------------
 on:
+  # Ogni push: dopo un merge su main, oppure il push di un tag che inizia con "v"
+  # (git push origin v0.2.0). I tag m6-g* NON lo avviano: non iniziano con "v".
   push:
     branches: [main]
     tags: ["v*"]
+    # Altri filtri utili:
+    #   branches-ignore: ["docs/**"]   # tutti i branch tranne questi
+    #   paths: ["src/**", "pom.xml"]   # parte solo se cambiano questi file
+    #   paths-ignore: ["docs/**", "**.md"]  # NB: un check obbligatorio che non
+    #                                       # parte blocca il merge della PR
+  # Ogni PR verso main, e ogni nuovo push sulla PR. Testa il merge simulato
+  # della PR con main. Le PR del cloud agent chiedono prima
+  # "Approve and run workflows".
   pull_request:
     branches: [main]
+    # types: [opened, synchronize, reopened]   # sono già i valori predefiniti
+  # Altri eventi che si possono aggiungere:
+  #   workflow_dispatch:             # pulsante "Run workflow" nella scheda Actions
+  #   schedule:
+  #     - cron: "0 6 * * 1"          # ogni lunedì alle 6:00 UTC
+  #   release:
+  #     types: [published]           # quando una persona pubblica una release
 
-# Minimo privilegio: lettura per tutti i job, scrittura solo dove serve.
+# Una sola esecuzione per branch/PR: un nuovo push annulla quella vecchia.
+# Non attivo qui; per provarlo togli i commenti.
+# concurrency:
+#   group: build-${{ github.ref }}
+#   cancel-in-progress: true
+
+# -----------------------------------------------------------------------------
+# PERMESSI del GITHUB_TOKEN (minimo privilegio)
+# Valgono per tutti i job, salvo quelli che li ridefiniscono (vedi release).
+# Elenco dei permessi: https://docs.github.com/en/actions/security-guides/automatic-token-authentication
+# -----------------------------------------------------------------------------
 permissions:
   contents: read
+  # Altri esempi: pull-requests: write (commentare le PR),
+  # security-events: write (caricare risultati di code scanning),
+  # issues: write, packages: write, id-token: write (OIDC verso un cloud).
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # JOB "build": compila, testa, controlla la formattazione, salva il jar.
+  # Il suo id ("build") è il nome del check richiesto dal ruleset di main:
+  # se lo rinomini, aggiorna anche il ruleset.
+  # ---------------------------------------------------------------------------
   build:
+    # Macchina virtuale nuova a ogni esecuzione, fornita da GitHub.
+    # Altri valori: ubuntu-24.04 (versione fissa), windows-latest, macos-latest.
+    # https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
     runs-on: ubuntu-latest
+    # timeout-minutes: 15   # ferma il job se si blocca (predefinito: 360)
     steps:
+      # 1. Scarica il codice del commit da verificare.
+      #    Opzioni (with:): fetch-depth: 0 per tutta la storia, ref: per un
+      #    altro branch. https://github.com/actions/checkout
       - uses: actions/checkout@v7
+
+      # 2. Installa Java. https://github.com/actions/setup-java
       - uses: actions/setup-java@v6
         with:
+          # JDK Eclipse Temurin. Altri: zulu, corretto, microsoft, oracle.
           distribution: temurin
+          # Deve coincidere con <java.version> del pom.xml.
           java-version: "25"
+          # Salva ~/.m2 tra un'esecuzione e l'altra, con chiave dal pom.xml:
+          # le dipendenze non si riscaricano finché il pom non cambia.
           cache: maven
+
+      # 3. Il cuore del file. -B = batch mode (log senza colori, niente domande).
+      #    "verify" esegue compile -> test -> package -> verify; in verify il
+      #    pom.xml aggancia spotless:check, quindi anche il codice non
+      #    formattato fa fallire il check. Qui MAI -DskipTests.
+      #    Fasi di Maven: https://maven.apache.org/guides/introduction/introduction-to-the-lifecycle.html
       - name: Build e test
         run: ./mvnw -B verify
+
+      # 4. Salva il jar come artifact dell'esecuzione: si scarica dalla pagina
+      #    del run. Opzioni: retention-days: 7, if-no-files-found: error.
+      #    https://github.com/actions/upload-artifact
       - uses: actions/upload-artifact@v7
         with:
           name: magazzino-ordini-jar
           path: target/*.jar
 
+  # ---------------------------------------------------------------------------
+  # JOB "release": solo sui tag v*, crea una release IN BOZZA con il jar.
+  # Guida passo passo: docs/pipeline/rilascio.md
+  # ---------------------------------------------------------------------------
   release:
+    # Condizione: gira solo se l'evento è il push di un tag che inizia con "v".
+    # Su PR e push su main lo vedi come "skipped".
     if: startsWith(github.ref, 'refs/tags/v')
+    # Parte solo dopo che "build" è finito con successo: test rossi = niente
+    # release.
     needs: build
     runs-on: ubuntu-latest
+    # Scrittura solo dove serve: creare una release richiede contents: write.
+    # Questo blocco sostituisce quello globale, solo per questo job.
     permissions:
       contents: write
+    # environment: produzione   # con un environment puoi chiedere
+    #                           # l'approvazione di una persona prima del job:
+    #                           # https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment
     steps:
+      # Ogni job gira su una macchina nuova: il jar fatto da "build" qui non
+      # c'è. Quindi di nuovo checkout e Java. In alternativa si può riprendere
+      # l'artifact con actions/download-artifact.
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "25"
           cache: maven
+
+      # Unico punto in cui -DskipTests è accettabile: needs: build garantisce
+      # che sullo stesso commit i test siano già passati.
       - name: Jar per la release (i test li ha già passati il job build)
         run: ./mvnw -B -DskipTests package
+
+      # Crea la release con il CLI gh, già installato sui runner.
+      # - GH_TOKEN: il token del job, con i permessi contents: write di sopra.
+      # - "$GITHUB_REF_NAME": il nome del tag, es. v0.2.0.
+      # - target/*.jar: il jar diventa un allegato della release.
+      # - --draft: resta in bozza, la pubblica una persona.
+      # - --generate-notes: note dalle PR mergiate dall'ultimo tag; le categorie
+      #   si configurano in .github/release.yml:
+      #   https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
+      # - Altre opzioni: --prerelease, --latest, --notes-file CHANGELOG.md,
+      #   --verify-tag. Manuale: https://cli.github.com/manual/gh_release_create
+      # Il ">" di YAML unisce le righe con uno spazio: è un comando solo.
+      # Variabili disponibili (GITHUB_REF_NAME, GITHUB_SHA, ...):
+      # https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables
       - name: Release in bozza
         env:
           GH_TOKEN: ${{ github.token }}
         run: >
           gh release create "$GITHUB_REF_NAME" target/*.jar
           --draft --generate-notes --title "Magazzino & Ordini $GITHUB_REF_NAME"
+
+# -----------------------------------------------------------------------------
+# Nota di sicurezza: @v7 e @v6 sono tag "mobili", il proprietario dell'action
+# può spostarli. Più sicuro fissare lo SHA del commit, per esempio
+#   uses: actions/checkout@<sha-di-40-caratteri>  # v7
+# Dependabot (ecosistema github-actions) aggiorna sia i tag sia gli SHA.
+# -----------------------------------------------------------------------------

@@ -1,10 +1,25 @@
+# =============================================================================
 # Prepara l'ambiente del Copilot cloud agent prima che inizi a lavorare:
 # Java 25 e dipendenze Maven già scaricate, così l'agente può lanciare ./mvnw test.
-# Deve stare sul branch principale; il job DEVE chiamarsi copilot-setup-steps.
+#
+# Regole che GitHub impone a questo file:
+# - deve stare sul branch principale (main), in .github/workflows/;
+# - il job DEVE chiamarsi copilot-setup-steps, altrimenti viene ignorato;
+# - del job si possono personalizzare solo alcune chiavi: steps, permissions,
+#   runs-on, services, snapshot, timeout-minutes (massimo 59).
+#
+# Documentazione:
+# https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/customize-the-agent-environment
+# =============================================================================
+
 name: "Copilot Setup Steps"
 
+# Questi trigger NON servono al cloud agent (lui lo esegue da solo quando
+# riceve una issue). Servono a TE per provare il file:
 on:
+  # pulsante "Run workflow" nella scheda Actions;
   workflow_dispatch:
+  # e ogni volta che modifichi questo file, in un push o in una PR.
   push:
     paths:
       - .github/workflows/copilot-setup-steps.yml
@@ -13,17 +28,48 @@ on:
       - .github/workflows/copilot-setup-steps.yml
 
 jobs:
+  # Nome obbligatorio: è così che GitHub lo riconosce.
   copilot-setup-steps:
+    # Macchina dell'agente. Compatibili solo Ubuntu x64 e Windows 64 bit;
+    # si possono usare runner più grandi o self-hosted (questi ultimi
+    # richiedono di disattivare il firewall integrato dell'agente).
     runs-on: ubuntu-latest
+    # Tempo massimo per la preparazione (il limite consentito è 59 minuti).
     timeout-minutes: 20
+    # Minimo privilegio: l'ambiente legge il codice, non scrive.
     permissions:
       contents: read
+    # Esempio di servizio, se un giorno servisse un database vero nei test:
+    # services:
+    #   postgres:
+    #     image: postgres:17
+    #     env:
+    #       POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+    #     ports: ["5432:5432"]
     steps:
+      # Scarica il codice. Se manca, lo fa Copilot da solo dopo; metterlo qui
+      # permette di usare ./mvnw negli step seguenti (e Copilot non riclona).
       - uses: actions/checkout@v7
+
+      # Stesso Java del build.yml e del pom.xml: l'agente deve compilare come
+      # la CI. https://github.com/actions/setup-java
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "25"
           cache: maven
+
+      # Scarica in anticipo tutte le dipendenze e i plugin Maven: l'agente non
+      # perde tempo a scaricarle e riduci il rischio che il suo firewall
+      # (che limita internet durante il lavoro) blocchi un download.
+      # -q = quiet, stampa solo gli errori.
       - name: Scarica le dipendenze Maven
         run: ./mvnw -B -q dependency:go-offline
+
+      # Altri esempi di step utili:
+      # - name: Strumenti di sistema
+      #   run: sudo apt-get update && sudo apt-get install -y jq
+      # - name: Variabile d'ambiente per i passi successivi
+      #   run: echo "PROFILO=test" >> "$GITHUB_ENV"
+      # Variabili e segreti per l'agente si creano anche nelle impostazioni del
+      # repo come "Agents variables / secrets" (vedi la documentazione sopra).
