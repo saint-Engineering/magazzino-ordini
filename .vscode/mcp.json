@@ -1,0 +1,19 @@
+{
+  "servers": {
+       "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": { "X-MCP-Toolsets": "repos,issues,pull_requests" }
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@0.0.83", "--isolated"]
+    },
+    "spring-docs": { 
+      "type": "stdio",
+      "command": "npx", 
+      "args": ["@enokdev/springdocs-mcp@latest"] 
+    },
+  }
+}
