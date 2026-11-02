@@ -81,7 +81,8 @@ I valori numerici con decimali vanno rappresentati con la classe BigDecimal
 - Non dichiarare test eseguiti se non lo sono.
 - Quando esistono indicazioni alternative in un `AGENTS.md` locale, applicale; per indicazioni esplicite dell'utente chiedi conferma.
 - Non usare `LocalDateTime`: usa `ZonedDateTime` o `Instant` per tenere conto dei fusi orari tra aeroporti.
-- La business logic deve stare nei service. Usa DTO Request/Response dedicati, mappati sulle entità, e limita le risposte ai dati necessari, senza dati sensibili.
+- La business logic deve stare nei service: Controller chiama Service che chiama Repository. 
+- Usa DTO Request/Response dedicati, mappati sulle entità, e limita le risposte ai dati necessari, senza dati sensibili.
 - Non usare `@Autowired`: preferisci l'iniezione via costruttore. Segui la struttura standard Maven/Spring Boot.
 - Mantieni sicurezza, guardrail ed error handling centralizzato.
 - motiva con un commento ogni metodo ed ogni classe. Se il punto è critico, aggiungere commenti nel testo

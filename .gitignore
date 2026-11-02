@@ -18,6 +18,7 @@ target/
 .sts4-cache
 
 ### VS Code ###
+# mcp.json si versiona: i server MCP del progetto valgono per tutto il team
 .vscode/*
 !.vscode/mcp.json
 

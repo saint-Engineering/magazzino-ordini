@@ -7,6 +7,8 @@ description: "Regole di architettura da rispettare quando si scrive codice e da 
 Dipendenze ammesse tra i package di `com.epicode.magazzino`:
 
 - `web` → `service`, `model`. **Mai** `repository`: un controller non apre il database.
+- `mcp` → `service`, `model`. È un ingresso come `web`: i tool MCP chiamano i service e
+  restituiscono record propri (mai entità JPA), **mai** `repository`.
 - `service` → `model`, `repository`. Un metodo pubblico = un caso d'uso `@Transactional`.
 - `model` → nessun altro package dell'applicazione, niente Spring MVC.
 - `repository` → `model`. Solo interfacce Spring Data, nessuna logica.
@@ -19,6 +21,7 @@ Regole:
 - Errori di dominio: sottoclassi di `MagazzinoException`, messaggio in italiano.
 
 In review segnala sempre:
-- un `import com.epicode.magazzino.repository` dentro `web`;
+- un `import com.epicode.magazzino.repository` dentro `web` o `mcp`;
+- un tool MCP che scrive con `readOnlyHint = true`, o che restituisce un'entità JPA;
 - un `if` con una regola di business dentro un controller o un template;
 - una regola nuova senza un test che ne copra i confini.

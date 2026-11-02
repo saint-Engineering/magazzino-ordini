@@ -11,7 +11,9 @@ import com.epicode.magazzino.repository.ProdottoRepository;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +35,38 @@ public class CatalogoService {
   @Transactional(readOnly = true)
   public List<Prodotto> elenco() {
     return prodotti.findAllByOrderByNomeAsc();
+  }
+
+  /**
+   * Prodotti il cui codice o nome contiene il testo, maiuscole indifferenti.
+   * Servono almeno 2 caratteri: una ricerca vuota restituirebbe tutto.
+   */
+  @Transactional(readOnly = true)
+  public List<Prodotto> cerca(String testo) {
+    String cercato = testo == null ? "" : testo.strip().toLowerCase(Locale.ROOT);
+    if (cercato.length() < 2) {
+      throw new RichiestaNonValidaException(
+          "Scrivi almeno 2 caratteri da cercare");
+    }
+    return prodotti.findAllByOrderByNomeAsc().stream()
+        .filter(p -> p.getCodice().toLowerCase(Locale.ROOT).contains(cercato)
+            || p.getNome().toLowerCase(Locale.ROOT).contains(cercato))
+        .toList();
+  }
+
+  /**
+   * I prodotti da riassortire (giacenza uguale o sotto la scorta minima), dal
+   * più scoperto al meno scoperto.
+   */
+  @Transactional(readOnly = true)
+  public List<Prodotto> daRiassortire() {
+    return prodotti.findAllByOrderByNomeAsc().stream()
+        .filter(Prodotto::daRiassortire)
+        .sorted(Comparator
+            .comparingInt((Prodotto p) -> p.getScortaMinima()
+                - p.getDisponibili())
+            .reversed().thenComparing(Prodotto::getCodice))
+        .toList();
   }
 
   @Transactional(readOnly = true)
