@@ -2,6 +2,8 @@ package com.epicode.magazzino.mcp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.epicode.magazzino.model.Prodotto;
@@ -10,9 +12,13 @@ import com.epicode.magazzino.service.CatalogoService;
 import io.modelcontextprotocol.client.McpClient;
 import io.modelcontextprotocol.client.McpSyncClient;
 import io.modelcontextprotocol.client.transport.HttpClientStreamableHttpTransport;
+import io.modelcontextprotocol.spec.McpError;
 import io.modelcontextprotocol.spec.McpSchema.CallToolRequest;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
 import io.modelcontextprotocol.spec.McpSchema.GetPromptRequest;
+import io.modelcontextprotocol.spec.McpSchema.GetPromptResult;
+import io.modelcontextprotocol.spec.McpSchema.Prompt;
+import io.modelcontextprotocol.spec.McpSchema.Role;
 import io.modelcontextprotocol.spec.McpSchema.TextContent;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
 import java.math.BigDecimal;
@@ -24,6 +30,8 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
@@ -137,15 +145,61 @@ class MagazzinoMcpServerTest {
   }
 
   @Test
-  void ilPromptDelPianoUsaSoloLaLettura() {
+  void ilPianoDiRiordinoEsponeLaCoperturaFacoltativa() {
+    List<Prompt> disponibili = client.listPrompts().prompts();
+
+    assertEquals(1, disponibili.size());
+    Prompt piano = disponibili.get(0);
+    assertEquals("piano-riordino", piano.name());
+    assertEquals("Piano di riordino", piano.title());
+    assertEquals(1, piano.arguments().size());
+    assertEquals("copertura", piano.arguments().get(0).name());
+    assertFalse(Boolean.TRUE.equals(piano.arguments().get(0).required()));
+  }
+
+  @Test
+  void ilPromptSenzaCoperturaUsaDueVolteLaScortaMinima() {
+    int prima = catalogo.trova(CODICE).getDisponibili();
+
+    GetPromptResult risultato = client.getPrompt(
+        GetPromptRequest.builder("piano-riordino").build());
+
+    assertEquals("Piano di riordino", risultato.description());
+    assertEquals(1, risultato.messages().size());
+    assertEquals(Role.USER, risultato.messages().get(0).role());
+    TextContent contenuto = assertInstanceOf(TextContent.class,
+        risultato.messages().get(0).content());
+    assertTrue(contenuto.text().contains("2 volte"));
+    assertEquals(prima, catalogo.trova(CODICE).getDisponibili());
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {0, 6})
+  void ilPromptRifiutaLaCoperturaFuoriLimiteSenzaCambiareLaGiacenza(
+      int copertura) {
+    int prima = catalogo.trova(CODICE).getDisponibili();
+
+    McpError errore = assertThrows(McpError.class,
+        () -> client.getPrompt(GetPromptRequest.builder("piano-riordino")
+            .arguments(Map.of("copertura", copertura)).build()));
+
+    assertTrue(errore.getMessage().contains("La copertura va da 1 a 5"));
+    assertEquals(prima, catalogo.trova(CODICE).getDisponibili());
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {1, 3, 5})
+  void ilPromptDelPianoUsaSoloLaLettura(int copertura) {
+    int prima = catalogo.trova(CODICE).getDisponibili();
     String messaggio = client
         .getPrompt(GetPromptRequest.builder("piano-riordino")
-            .arguments(Map.of("copertura", 3)).build())
+            .arguments(Map.of("copertura", copertura)).build())
         .messages().stream().map(m -> ((TextContent) m.content()).text())
         .collect(Collectors.joining());
 
     assertTrue(messaggio.contains("prodotti_sotto_scorta"));
-    assertTrue(messaggio.contains("3 volte"));
+    assertTrue(messaggio.contains(copertura + " volte"));
     assertTrue(messaggio.contains("Non chiamare riassortisci_prodotto"));
+    assertEquals(prima, catalogo.trova(CODICE).getDisponibili());
   }
 }
