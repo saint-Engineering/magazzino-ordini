@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="it">
+<head th:replace="~{fragments :: head('Utenti bloccati')}"></head>
+<body>
+<header th:replace="~{fragments :: menu}"></header>
+<main>
+    <h1>Utenti bloccati</h1>
+    <div th:replace="~{fragments :: avvisi}"></div>
+    <p><a th:href="@{/utenti}">Tutti gli utenti</a></p>
+    <p th:if="${#lists.isEmpty(utenti)}">Nessun utente bloccato.</p>
+    <table th:unless="${#lists.isEmpty(utenti)}">
+        <thead>
+        <tr>
+            <th>Username</th>
+            <th>Nome</th>
+            <th>Cognome</th>
+            <th>Ruolo</th>
+            <th>Errori</th>
+            <th>Azioni</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="utente : ${utenti}">
+            <td th:text="${utente.username}">user</td>
+            <td th:text="${utente.nome}">Nome</td>
+            <td th:text="${utente.cognome}">Cognome</td>
+            <td th:text="${utente.ruolo == 0 ? 'Amministratore' : (utente.ruolo == 2 ? 'Magazziniere' : 'Utente')}">Utente</td>
+            <td th:text="${utente.errori}">3</td>
+            <td class="azioni">
+                <form th:action="@{/utenti/bloccati/{id}/sblocca(id=${utente.id})}" method="post">
+                    <button type="submit"
+                            th:attr="aria-label=${'Sblocca ' + utente.username}">Sblocca</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+</body>
+</html>
