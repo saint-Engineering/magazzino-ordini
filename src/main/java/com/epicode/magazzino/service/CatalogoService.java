@@ -43,7 +43,9 @@ public class CatalogoService {
    */
   @Transactional(readOnly = true)
   public List<Prodotto> cerca(String testo) {
-    String cercato = testo == null ? "" : testo.strip().toLowerCase(Locale.ROOT);
+    String cercato = testo == null
+        ? ""
+        : testo.strip().toLowerCase(Locale.ROOT);
     if (cercato.length() < 2) {
       throw new RichiestaNonValidaException(
           "Scrivi almeno 2 caratteri da cercare");
@@ -63,8 +65,8 @@ public class CatalogoService {
     return prodotti.findAllByOrderByNomeAsc().stream()
         .filter(Prodotto::daRiassortire)
         .sorted(Comparator
-            .comparingInt((Prodotto p) -> p.getScortaMinima()
-                - p.getDisponibili())
+            .comparingInt(
+                (Prodotto p) -> p.getScortaMinima() - p.getDisponibili())
             .reversed().thenComparing(Prodotto::getCodice))
         .toList();
   }

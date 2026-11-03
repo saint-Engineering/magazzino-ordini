@@ -17,8 +17,7 @@ public record OrdineMcp(long numero, String cliente, String stato,
     static Riga da(RigaOrdine riga) {
       return new Riga(riga.getProdotto().getCodice(),
           riga.getProdotto().getNome(), riga.getQuantita(),
-          riga.getPrezzoUnitario(), riga.percentualeSconto(),
-          riga.subtotale());
+          riga.getPrezzoUnitario(), riga.percentualeSconto(), riga.subtotale());
     }
   }
 

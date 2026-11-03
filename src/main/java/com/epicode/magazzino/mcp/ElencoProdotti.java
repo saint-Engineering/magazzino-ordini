@@ -11,8 +11,8 @@ import java.util.List;
 public record ElencoProdotti(List<ProdottoMcp> prodotti, int trovati) {
 
   static ElencoProdotti di(List<Prodotto> tutti, int massimo) {
-    List<ProdottoMcp> primi = tutti.stream().limit(massimo)
-        .map(ProdottoMcp::da).toList();
+    List<ProdottoMcp> primi = tutti.stream().limit(massimo).map(ProdottoMcp::da)
+        .toList();
     return new ElencoProdotti(primi, tutti.size());
   }
 }

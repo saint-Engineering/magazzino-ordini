@@ -25,12 +25,9 @@ class MappatureMcpTest {
   @Test
   void elencoProdottiLimitaElementiMaMantieneIlTotale() {
     List<Prodotto> prodotti = List.of(
-        new Prodotto("T-MCP-1", "Prodotto uno", new BigDecimal("1.00"),
-            1, 2),
-        new Prodotto("T-MCP-2", "Prodotto due", new BigDecimal("2.00"),
-            2, 3),
-        new Prodotto("T-MCP-3", "Prodotto tre", new BigDecimal("3.00"),
-            3, 4));
+        new Prodotto("T-MCP-1", "Prodotto uno", new BigDecimal("1.00"), 1, 2),
+        new Prodotto("T-MCP-2", "Prodotto due", new BigDecimal("2.00"), 2, 3),
+        new Prodotto("T-MCP-3", "Prodotto tre", new BigDecimal("3.00"), 3, 4));
 
     ElencoProdotti elenco = ElencoProdotti.di(prodotti, 2);
 
@@ -48,8 +45,9 @@ class MappatureMcpTest {
 
     EsitoRiassortimento esito = EsitoRiassortimento.di(prodotto, 22);
 
-    assertEquals(new EsitoRiassortimento("T-MCP-1", "Cacciavite PH2", 22,
-        40, false), esito);
+    assertEquals(
+        new EsitoRiassortimento("T-MCP-1", "Cacciavite PH2", 22, 40, false),
+        esito);
     assertFalse(esito.ancoraDaRiassortire());
   }
 
@@ -67,8 +65,9 @@ class MappatureMcpTest {
     assertEquals("Cliente MCP", risultato.cliente());
     assertEquals("CONFERMATO", risultato.stato());
     assertEquals(creazione.toString(), risultato.creatoIl());
-    assertEquals(List.of(new OrdineMcp.Riga("T-MCP-1", "Cacciavite PH2", 1,
-        new BigDecimal("12.50"), 0, new BigDecimal("12.50"))),
+    assertEquals(
+        List.of(new OrdineMcp.Riga("T-MCP-1", "Cacciavite PH2", 1,
+            new BigDecimal("12.50"), 0, new BigDecimal("12.50"))),
         risultato.righe());
     assertEquals(new BigDecimal("12.50"), risultato.totaleMerce());
     assertEquals(new BigDecimal("9.90"), risultato.speseSpedizione());

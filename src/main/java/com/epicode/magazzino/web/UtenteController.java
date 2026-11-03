@@ -37,7 +37,7 @@ public class UtenteController {
   }
 
   @GetMapping("/bloccati")
-  public String bloccati(Model model) {
+  public String elencoBloccati(Model model) {
     model.addAttribute("utenti", utenti.elencoBloccati());
     return "utenti-bloccati";
   }
@@ -106,24 +106,20 @@ public class UtenteController {
 
   @PostMapping("/{id}/sblocca")
   public String sblocca(@PathVariable Long id, RedirectAttributes redirect) {
-    sbloccaUtente(id, redirect);
-    return "redirect:/utenti";
-  }
-
-  @PostMapping("/bloccati/{id}/sblocca")
-  public String sbloccaDallaListaBloccati(@PathVariable Long id,
-      RedirectAttributes redirect) {
-    sbloccaUtente(id, redirect);
-    return "redirect:/utenti/bloccati";
-  }
-
-  private void sbloccaUtente(Long id, RedirectAttributes redirect) {
     try {
       utenti.sblocca(id);
       redirect.addFlashAttribute("messaggio", "Utente sbloccato");
     } catch (IllegalArgumentException e) {
       redirect.addFlashAttribute("errore", e.getMessage());
     }
+    return "redirect:/utenti";
+  }
+
+  @PostMapping("/bloccati/{id}/sblocca")
+  public String sbloccaBloccato(@PathVariable Long id,
+      RedirectAttributes redirect) {
+    sblocca(id, redirect);
+    return "redirect:/utenti/bloccati";
   }
 
   @PostMapping("/{id}/chiave-mcp")

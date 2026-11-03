@@ -3,21 +3,28 @@ package com.epicode.magazzino.web;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.epicode.magazzino.model.Prodotto;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.security.test.context.support.WithAnonymousUser;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 /** R1-R4 della pagina /scorte (M7 G3), con il catalogo di DatiIniziali. */
 @SpringBootTest
 @AutoConfigureMockMvc
+@WithMockUser(roles = "UTENTE")
 class ScortePaginaTest {
 
   @Autowired
@@ -40,18 +47,33 @@ class ScortePaginaTest {
 
   @Test
   void ilMenuPortaAlleScorte() throws Exception {
-    mvc.perform(get("/prodotti"))
+    mvc.perform(get("/prodotti")).andExpect(status().isOk())
         .andExpect(content().string(containsString("href=\"/scorte\"")));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"/scorte", "/prodotti"})
+  @WithAnonymousUser
+  void visitatoreDeveAutenticarsi(String pagina) throws Exception {
+    mvc.perform(get(pagina)).andExpect(status().is3xxRedirection())
+        .andExpect(redirectedUrl("/login"));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"MAGAZZINIERE", "AMMINISTRATORE"})
+  void altriRuoliNonAccedonoAlleScorte(String ruolo) throws Exception {
+    mvc.perform(get("/scorte").with(user("operatore").roles(ruolo)))
+        .andExpect(status().isForbidden());
   }
 
   @Test
   void iPezziMancantiNonSonoMaiNegativi() {
     // R2: 0 se la giacenza è uguale o sopra la scorta minima
-    assertEquals(7, new Prodotto("T-1", "A", BigDecimal.ONE, 3, 10)
-        .pezziMancanti());
-    assertEquals(0, new Prodotto("T-2", "B", BigDecimal.ONE, 10, 10)
-        .pezziMancanti());
-    assertEquals(0, new Prodotto("T-3", "C", BigDecimal.ONE, 12, 10)
-        .pezziMancanti());
+    assertEquals(7,
+        new Prodotto("T-1", "A", BigDecimal.ONE, 3, 10).pezziMancanti());
+    assertEquals(0,
+        new Prodotto("T-2", "B", BigDecimal.ONE, 10, 10).pezziMancanti());
+    assertEquals(0,
+        new Prodotto("T-3", "C", BigDecimal.ONE, 12, 10).pezziMancanti());
   }
 }

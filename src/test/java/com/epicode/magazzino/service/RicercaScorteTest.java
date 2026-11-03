@@ -33,8 +33,8 @@ class RicercaScorteTest {
         new BigDecimal("1.00"), 3, 10));
     prodotti.save(new Prodotto("T-SC-B", "Bulloni di prova",
         new BigDecimal("1.00"), 5, 5));
-    prodotti.save(new Prodotto("T-SC-C", "Dadi di prova",
-        new BigDecimal("1.00"), 6, 5));
+    prodotti.save(
+        new Prodotto("T-SC-C", "Dadi di prova", new BigDecimal("1.00"), 6, 5));
   }
 
   private List<String> codici(List<Prodotto> elenco) {
@@ -51,7 +51,8 @@ class RicercaScorteTest {
 
   @Test
   void unaRicercaTroppoCortaVieneRifiutata() {
-    assertThrows(RichiestaNonValidaException.class, () -> catalogo.cerca(" x "));
+    assertThrows(RichiestaNonValidaException.class,
+        () -> catalogo.cerca(" x "));
     assertThrows(RichiestaNonValidaException.class, () -> catalogo.cerca(null));
   }
 
@@ -60,7 +61,7 @@ class RicercaScorteTest {
     List<String> daRiassortire = codici(catalogo.daRiassortire());
 
     assertEquals(List.of("T-SC-A", "T-SC-B"), daRiassortire);
-    assertTrue(catalogo.daRiassortire().stream()
-        .allMatch(Prodotto::daRiassortire));
+    assertTrue(
+        catalogo.daRiassortire().stream().allMatch(Prodotto::daRiassortire));
   }
 }
