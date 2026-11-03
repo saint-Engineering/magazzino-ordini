@@ -70,14 +70,14 @@ class ScortePaginaTest {
         .replaceAll("\\s+", " ");
     String rigaPari = rigaProdotto(pagina, "SCORTE-TEST-PARI")
         .replaceAll("\\s+", " ");
-    assertTrue(rigaSotto.contains(
-        "<td class=\"num\">3</td> <td class=\"num\">10</td> "
+    assertTrue(
+        rigaSotto.contains("<td class=\"num\">3</td> <td class=\"num\">10</td> "
             + "<td class=\"num\">7</td>"));
-    assertTrue(rigaPari.contains(
-        "<td class=\"num\">10</td> <td class=\"num\">10</td> "
+    assertTrue(
+        rigaPari.contains("<td class=\"num\">10</td> <td class=\"num\">10</td> "
             + "<td class=\"num\">0</td>"));
-    assertTrue(pagina.indexOf("SCORTE-TEST-SOTTO")
-        < pagina.indexOf("SCORTE-TEST-PARI"));
+    assertTrue(pagina.indexOf("SCORTE-TEST-SOTTO") < pagina
+        .indexOf("SCORTE-TEST-PARI"));
     assertEquals(-1, pagina.indexOf("SCORTE-TEST-SOPRA"));
   }
 
@@ -88,8 +88,8 @@ class ScortePaginaTest {
     String pagina = mvc.perform(get("/scorte")).andExpect(status().isOk())
         .andReturn().getResponse().getContentAsString();
 
-    assertTrue(pagina.contains(
-        "<p class=\"avviso ok\">Nessun prodotto da riassortire</p>"));
+    assertTrue(pagina
+        .contains("<p class=\"avviso ok\">Nessun prodotto da riassortire</p>"));
     assertEquals(-1, pagina.indexOf("<table"));
   }
 
