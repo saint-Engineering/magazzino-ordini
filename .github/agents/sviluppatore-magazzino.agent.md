@@ -22,3 +22,5 @@ Metodo, in quest'ordine:
    dell'applicazione invece di dedurli dal codice, e riporta nella PR cosa hai letto.
 6. Nella descrizione della PR metti una tabella "regola → test → file" e una sezione
    "Cosa non ho fatto e perché".
+7. Per i dati di catalogo usa i tool del server `magazzino` e riporta nella PR
+   quello che hai letto.
