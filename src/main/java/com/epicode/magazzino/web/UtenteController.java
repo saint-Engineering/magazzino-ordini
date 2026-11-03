@@ -36,6 +36,12 @@ public class UtenteController {
     return "utenti";
   }
 
+  @GetMapping("/bloccati")
+  public String bloccati(Model model) {
+    model.addAttribute("utenti", utenti.elencoBloccati());
+    return "utenti-bloccati";
+  }
+
   @GetMapping("/nuovo")
   public String nuovo(Model model) {
     model.addAttribute("form", new UtenteForm());
@@ -100,13 +106,24 @@ public class UtenteController {
 
   @PostMapping("/{id}/sblocca")
   public String sblocca(@PathVariable Long id, RedirectAttributes redirect) {
+    sbloccaUtente(id, redirect);
+    return "redirect:/utenti";
+  }
+
+  @PostMapping("/bloccati/{id}/sblocca")
+  public String sbloccaDallaListaBloccati(@PathVariable Long id,
+      RedirectAttributes redirect) {
+    sbloccaUtente(id, redirect);
+    return "redirect:/utenti/bloccati";
+  }
+
+  private void sbloccaUtente(Long id, RedirectAttributes redirect) {
     try {
       utenti.sblocca(id);
       redirect.addFlashAttribute("messaggio", "Utente sbloccato");
     } catch (IllegalArgumentException e) {
       redirect.addFlashAttribute("errore", e.getMessage());
     }
-    return "redirect:/utenti";
   }
 
   @PostMapping("/{id}/chiave-mcp")
@@ -134,7 +151,8 @@ public class UtenteController {
     return ResponseEntity.ok()
         .contentType(new MediaType("text", "plain", StandardCharsets.UTF_8))
         .cacheControl(CacheControl.noStore())
-        .header(HttpHeaders.PRAGMA, "no-cache")
+        .header(HttpHeaders.PRAGMA,
+            "no-cache")
         .header(HttpHeaders.CONTENT_DISPOSITION,
             ContentDisposition.attachment()
                 .filename("chiave-mcp-utente-" + id + ".txt",
