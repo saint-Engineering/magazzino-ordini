@@ -36,6 +36,12 @@ public class UtenteController {
     return "utenti";
   }
 
+  @GetMapping("/bloccati")
+  public String elencoBloccati(Model model) {
+    model.addAttribute("utenti", utenti.elencoBloccati());
+    return "utenti-bloccati";
+  }
+
   @GetMapping("/nuovo")
   public String nuovo(Model model) {
     model.addAttribute("form", new UtenteForm());
@@ -107,6 +113,13 @@ public class UtenteController {
       redirect.addFlashAttribute("errore", e.getMessage());
     }
     return "redirect:/utenti";
+  }
+
+  @PostMapping("/bloccati/{id}/sblocca")
+  public String sbloccaBloccato(@PathVariable Long id,
+      RedirectAttributes redirect) {
+    sblocca(id, redirect);
+    return "redirect:/utenti/bloccati";
   }
 
   @PostMapping("/{id}/chiave-mcp")
