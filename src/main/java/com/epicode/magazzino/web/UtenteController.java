@@ -147,7 +147,8 @@ public class UtenteController {
     return ResponseEntity.ok()
         .contentType(new MediaType("text", "plain", StandardCharsets.UTF_8))
         .cacheControl(CacheControl.noStore())
-        .header(HttpHeaders.PRAGMA, "no-cache")
+        .header(HttpHeaders.PRAGMA,
+            "no-cache")
         .header(HttpHeaders.CONTENT_DISPOSITION,
             ContentDisposition.attachment()
                 .filename("chiave-mcp-utente-" + id + ".txt",

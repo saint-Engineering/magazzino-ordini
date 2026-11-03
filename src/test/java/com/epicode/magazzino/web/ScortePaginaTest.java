@@ -47,8 +47,7 @@ class ScortePaginaTest {
 
   @Test
   void ilMenuPortaAlleScorte() throws Exception {
-    mvc.perform(get("/prodotti"))
-        .andExpect(status().isOk())
+    mvc.perform(get("/prodotti")).andExpect(status().isOk())
         .andExpect(content().string(containsString("href=\"/scorte\"")));
   }
 
@@ -70,11 +69,11 @@ class ScortePaginaTest {
   @Test
   void iPezziMancantiNonSonoMaiNegativi() {
     // R2: 0 se la giacenza è uguale o sopra la scorta minima
-    assertEquals(7, new Prodotto("T-1", "A", BigDecimal.ONE, 3, 10)
-        .pezziMancanti());
-    assertEquals(0, new Prodotto("T-2", "B", BigDecimal.ONE, 10, 10)
-        .pezziMancanti());
-    assertEquals(0, new Prodotto("T-3", "C", BigDecimal.ONE, 12, 10)
-        .pezziMancanti());
+    assertEquals(7,
+        new Prodotto("T-1", "A", BigDecimal.ONE, 3, 10).pezziMancanti());
+    assertEquals(0,
+        new Prodotto("T-2", "B", BigDecimal.ONE, 10, 10).pezziMancanti());
+    assertEquals(0,
+        new Prodotto("T-3", "C", BigDecimal.ONE, 12, 10).pezziMancanti());
   }
 }

@@ -52,9 +52,10 @@ public class DatiIniziali implements CommandLineRunner {
           "Admin", "Admin", RuoloUtente.AMMINISTRATORE.getValore()));
       utenti.save(new Utente("user", passwordEncoder.encode("Uz3rUz3rUz3r"),
           "Utente", "Demo", RuoloUtente.UTENTE.getValore()));
-      utenti.save(new Utente("magazzinga", passwordEncoder.encode("Gu3stGu3stGu3st"),
-          "Magazzino", "Gestore", RuoloUtente.MAGAZZINIERE.getValore()));
-    
+      utenti.save(
+          new Utente("magazzinga", passwordEncoder.encode("Gu3stGu3stGu3st"),
+              "Magazzino", "Gestore", RuoloUtente.MAGAZZINIERE.getValore()));
+
     }
   }
 }
