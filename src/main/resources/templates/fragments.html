@@ -22,6 +22,7 @@
             <a th:href="@{/movimenti}">Movimenti</a>
         </span>
         <a th:if="${amministratore == true}" th:href="@{/utenti}">Utenti</a>
+        <a th:if="${amministratore == true}" th:href="@{/utenti/bloccati}">Utenti bloccati</a>
         <a th:href="@{/profilo/password}">Cambia password</a>
         <form th:action="@{/logout}" method="post">
             <button type="submit">Esci</button>

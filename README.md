@@ -27,6 +27,19 @@ scrivere, verificare e rivedere agli agenti.
 .\mvnw.cmd spring-boot:run   # poi apri http://localhost:8080
 ```
 
+## Utenti bloccati
+
+Solo gli amministratori possono aprire **Utenti bloccati** dal menu o dalla
+pagina **Utenti** (`/utenti/bloccati`). La lista mostra gli account bloccati
+per errori di login, ordinati per username, con nome, cognome, ruolo e numero
+di errori. Se non ci sono account bloccati viene mostrato un messaggio.
+
+Il pulsante **Sblocca** su ogni riga azzera gli errori solo dell'account
+selezionato, che scompare dalla lista; un avviso conferma l'operazione.
+Lo sblocco richiede un POST protetto da CSRF. Utenti non autenticati,
+utenti ordinari e magazzinieri non possono consultare la lista o sbloccare
+account. Lo sblocco resta disponibile anche nell'elenco completo degli utenti.
+
 ## Build continua e note di rilascio
 
 Il workflow **Build continua e prerelease** parte a **ogni push su `main`**,
