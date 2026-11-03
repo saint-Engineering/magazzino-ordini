@@ -7,6 +7,7 @@
     <h1>Utenti</h1>
     <div th:replace="~{fragments :: avvisi}"></div>
     <p><a th:href="@{/utenti/nuovo}" class="primario">Aggiungi utente</a></p>
+    <p><a th:href="@{/utenti/bloccati}">Utenti bloccati</a></p>
     <table>
         <thead>
         <tr>
@@ -39,7 +40,7 @@
                       th:action="@{/utenti/{id}/chiave-mcp/revoca(id=${utente.id})}" method="post">
                     <button type="submit">Revoca chiave</button>
                 </form>
-                <form th:if="${utente.errori >= 3}" th:action="@{/utenti/{id}/sblocca(id=${utente.id})}" method="post">
+                <form th:unless="${utente.accountNonLocked}" th:action="@{/utenti/{id}/sblocca(id=${utente.id})}" method="post">
                     <button type="submit">Sblocca</button>
                 </form>
                 <form th:action="@{/utenti/{id}/elimina(id=${utente.id})}" method="post">
