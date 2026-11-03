@@ -83,6 +83,11 @@ public class Prodotto {
     return disponibili <= scortaMinima;
   }
 
+  /** R2 (M7 G3): quanti pezzi mancano per tornare alla scorta minima. */
+  public int pezziMancanti() {
+    return Math.max(0, scortaMinima - disponibili);
+  }
+
   public Long getId() {
     return id;
   }

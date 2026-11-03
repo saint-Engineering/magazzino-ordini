@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "magazzino": {
+      "type": "local",
+      "command": "java",
+      "args": [
+        "-jar",
+        "target/magazzino-ordini.jar",
+        "--spring.profiles.active=mcp-stdio"
+      ],
+      "tools": ["cerca_prodotti", "prodotti_sotto_scorta"]
+    }
+  }
+}

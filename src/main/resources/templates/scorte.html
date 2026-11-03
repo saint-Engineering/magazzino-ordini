@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="it">
+
+<head th:replace="~{fragments :: head('Scorte')}"></head>
+
+<body>
+    <header th:replace="~{fragments :: menu}"></header>
+    <main>
+        <h1>Prodotti da riassortire</h1>
+        <p th:if="${#lists.isEmpty(prodotti)}" class="avviso ok">Nessun prodotto da riassortire</p>
+        <table th:unless="${#lists.isEmpty(prodotti)}">
+            <thead>
+                <tr>
+                    <th>Codice</th>
+                    <th>Nome</th>
+                    <th class="num">Disponibili</th>
+                    <th class="num">Scorta minima</th>
+                    <th class="num">Mancanti</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="p : ${prodotti}" th:classappend="${p.disponibili == 0} ? 'esaurito' : 'sottoscorta'">
+                    <td><code th:text="${p.codice}">NAS-50</code></td>
+                    <td th:text="${p.nome}">Nastro americano 50 m</td>
+                    <td class="num" th:text="${p.disponibili}">0</td>
+                    <td class="num" th:text="${p.scortaMinima}">10</td>
+                    <td class="num" th:text="${p.pezziMancanti()}">10</td>
+                    <td><a th:href="@{/prodotti/{codice}/riassortimento(codice=${p.codice})}">Riassortisci</a></td>
+                </tr>
+            </tbody>
+        </table>
+    </main>
+</body>
+
+</html>

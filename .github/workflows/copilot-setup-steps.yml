@@ -66,6 +66,13 @@ jobs:
       - name: Scarica le dipendenze Maven
         run: ./mvnw -B -q dependency:go-offline
 
+      # M7 G3: il jar dell'applicazione, che il cloud agent avvia come server MCP
+      # in stdio (configurazione MCP del repository, vedi docs/mcp/cloud-agent.json).
+      # Qui i test si saltano perché serve solo il jar: i test li esegue la CI
+      # (build.yml) e li lancia l'agente stesso mentre lavora.
+      - name: Costruisci il jar per il server MCP
+        run: ./mvnw -B -q -DskipTests package
+
       # Altri esempi di step utili:
       # - name: Strumenti di sistema
       #   run: sudo apt-get update && sudo apt-get install -y jq

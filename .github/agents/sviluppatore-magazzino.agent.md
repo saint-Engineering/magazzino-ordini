@@ -17,5 +17,8 @@ Metodo, in quest'ordine:
 4. Tocca solo quello che serve alla issue. Non modificare `.github/`, `pom.xml` e i
    workflow: se pensi che servano modifiche lì, scrivilo nella PR e fermati.
 5. Prima di chiudere `./mvnw -B test` deve essere verde.
+   Quando la issue riguarda i dati del catalogo, usa i tool del server MCP
+   `magazzino` (`cerca_prodotti`, `prodotti_sotto_scorta`) per vedere i dati veri
+   dell'applicazione invece di dedurli dal codice, e riporta nella PR cosa hai letto.
 6. Nella descrizione della PR metti una tabella "regola → test → file" e una sezione
    "Cosa non ho fatto e perché".

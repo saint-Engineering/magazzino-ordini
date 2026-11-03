@@ -96,6 +96,8 @@
 	</dependencies>
 
 	<build>
+		<!-- Nome fisso del jar: lo avvia il cloud agent come server MCP (M7 G3) -->
+		<finalName>magazzino-ordini</finalName>
 		<plugins>
 			<plugin>
 				<groupId>com.diffplug.spotless</groupId>

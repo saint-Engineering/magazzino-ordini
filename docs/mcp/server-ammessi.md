@@ -15,3 +15,20 @@ Soluzione di riferimento. Decisione: **ammesso**, **ammesso con limiti** o **rif
 
 Regola del progetto: un server entra in `.vscode/mcp.json` solo con una scheda qui sopra e
 una PR rivista.
+
+## M7 · G3 — il server `magazzino` per il cloud agent
+
+| Criterio | magazzino (cloud agent) |
+|---|---|
+| Chi lo pubblica, dove sta il sorgente | noi, `com.epicode.magazzino.mcp` in questo repo |
+| Locale (stdio) o remoto (http) | locale: il cloud agent avvia `target/magazzino-ordini.jar` con il profilo `mcp-stdio` |
+| Versione fissata? | sì: è il codice del commit su cui lavora l'agente |
+| Credenziali: quali, dove stanno | nessuna; se servissero, segreti Agents `COPILOT_MCP_*` |
+| Tool che scrivono o cancellano | `riassortisci_prodotto` scrive: **escluso** dalla lista `tools` |
+| Dati che escono dal PC | nessuno: il database H2 vive nel processo e riparte dai dati di prova |
+| Contenuti esterni che il modello leggerà | nomi e codici dei prodotti, scritti da noi |
+| Decisione e limiti | **ammesso con limiti**: solo `cerca_prodotti` e `prodotti_sotto_scorta`; `dettaglio_ordine` escluso (contiene il nome del cliente, dato personale che all'agente non serve) |
+
+Il cloud agent usa i tool senza chiedere conferma: per questo la lista `tools` è una
+allowlist di sola lettura e non `["*"]`. La configurazione vive nelle impostazioni del repo
+(Settings → Copilot → MCP servers); una copia rivista con PR è in `docs/mcp/cloud-agent.json`.
