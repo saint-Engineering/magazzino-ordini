@@ -1,6 +1,7 @@
 package com.epicode.magazzino.config;
 
 import com.epicode.magazzino.mcp.MagazzinoTools;
+import com.epicode.magazzino.mcp.AmministrazioneTools;
 import com.epicode.magazzino.mcp.PromptMagazzino;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.modelcontextprotocol.json.McpJsonMapper;
@@ -65,20 +66,24 @@ public class McpServerConfig {
       McpJsonMapper mapper, MagazzinoTools tool, PromptMagazzino prompt) {
     return serverOperativo("MAGAZZINO", trasporto, mapper, tool, prompt,
         Set.of("cerca_prodotti", "prodotti_sotto_scorta",
-            "riassortisci_prodotto"),
-        "Catalogo e scorte: riassortisci_prodotto modifica la giacenza "
-            + "e va usato solo su richiesta esplicita dell'utente.");
+            "riassortisci_prodotto", "crea_prodotto", "smaltisci_prodotto",
+            "storico_movimenti"),
+        "Catalogo, scorte e movimenti: crea_prodotto, riassortisci_prodotto "
+            + "e smaltisci_prodotto modificano i dati e vanno usati solo "
+            + "su richiesta esplicita dell'utente. Lo smaltimento rimuove scorte.");
   }
 
   @Bean(destroyMethod = "closeGracefully")
   McpSyncServer serverAdmin(
       @Qualifier("trasportoAdmin") WebMvcStreamableServerTransportProvider trasporto,
-      McpJsonMapper mapper) {
+      McpJsonMapper mapper, AmministrazioneTools tool) {
     return McpServer.sync(trasporto).jsonMapper(mapper)
         .serverInfo("ADMIN", "0.3.0")
-        .capabilities(ServerCapabilities.builder().build())
+        .capabilities(ServerCapabilities.builder().tools(false).build())
+        .tools(SyncMcpAnnotationProviders.toolSpecifications(List.of(tool)))
         .instructions(
-            "Endpoint amministrativo riservato: nessun tool o prompt disponibile.")
+            "Amministrazione: utenti_bloccati legge gli account bloccati "
+                + "senza modificarli. Nessun prompt o tool operativo di magazzino.")
         .immediateExecution(true).build();
   }
 

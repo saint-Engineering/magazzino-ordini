@@ -8,7 +8,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.epicode.magazzino.model.RuoloUtente;
 import com.epicode.magazzino.model.Utente;
 import com.epicode.magazzino.repository.UtenteRepository;
+import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -32,6 +35,60 @@ class UtenteServiceTest {
 
   @Autowired
   private PasswordEncoder passwordEncoder;
+
+  @ParameterizedTest
+  @ValueSource(ints = {0, 1, 2, 3, 4})
+  void elencoBloccatiRispettaLaSogliaDelModelloSenzaModificareAccount(
+      int errori) {
+    Utente utente = creaUtente("soglia-blocco");
+    for (int i = 0; i < errori; i++) {
+      utente.incrementaErrori();
+    }
+    String password = utente.getPassword();
+
+    List<Utente> bloccati = utenti.elencoBloccati();
+
+    assertEquals(errori >= 3, bloccati.contains(utente));
+    assertEquals(errori, utente.getErrori());
+    assertEquals(password, utente.getPassword());
+    assertEquals(RuoloUtente.UTENTE.getValore(), utente.getRuolo());
+    assertTrue(utente.isChiaveMcpAttiva());
+  }
+
+  @Test
+  void elencoBloccatiIncludeTuttiIRuoliInOrdineDiUsername() {
+    Utente ultimo = utenti.crea("zzz-bloccato", "Password1!", "Nome", "Cognome",
+        RuoloUtente.MAGAZZINIERE.getValore()).utente();
+    Utente primo = utenti.crea("aaa-bloccato", "Password1!", "Nome", "Cognome",
+        RuoloUtente.AMMINISTRATORE.getValore()).utente();
+    Utente secondo = creaUtente("bbb-bloccato");
+    for (Utente utente : List.of(ultimo, primo, secondo)) {
+      for (int i = 0; i < 3; i++) {
+        utente.incrementaErrori();
+      }
+    }
+
+    assertEquals(List.of(primo, secondo, ultimo), utenti.elencoBloccati());
+  }
+
+  @Test
+  void elencoBloccatiEVuotoQuandoNessunAccountEBloccato() {
+    assertTrue(utenti.elencoBloccati().isEmpty());
+  }
+
+  @Test
+  void loSbloccoRimuoveAccountDallElencoBloccati() {
+    Utente utente = creaUtente("da-sbloccare");
+    for (int i = 0; i < 3; i++) {
+      utente.incrementaErrori();
+    }
+    assertEquals(List.of(utente), utenti.elencoBloccati());
+
+    utenti.sblocca(utente.getId());
+
+    assertTrue(utenti.elencoBloccati().isEmpty());
+    assertEquals(0, utente.getErrori());
+  }
 
   @Test
   void terzoErroreBloccaAccountEIlMessaggioEQuelloPrevisto() {
@@ -99,8 +156,8 @@ class UtenteServiceTest {
 
   @Test
   void chiaveMcpVieneMemorizzataComeHashEVerificataPerUtente() {
-    UtenteConChiaveMcp creato = utenti.crea("chiave-mcp", "Password1!",
-        "Nome", "Cognome", RuoloUtente.UTENTE.getValore());
+    UtenteConChiaveMcp creato = utenti.crea("chiave-mcp", "Password1!", "Nome",
+        "Cognome", RuoloUtente.UTENTE.getValore());
     String chiave = creato.chiaveMcp();
     Utente utente = creato.utente();
 
@@ -114,9 +171,8 @@ class UtenteServiceTest {
 
   @Test
   void rigenerareORevocareUnaChiaveMcpInvalidaLaPrecedente() {
-    UtenteConChiaveMcp creato = utenti.crea("rotazione-mcp",
-        "Password1!", "Nome", "Cognome",
-        RuoloUtente.MAGAZZINIERE.getValore());
+    UtenteConChiaveMcp creato = utenti.crea("rotazione-mcp", "Password1!",
+        "Nome", "Cognome", RuoloUtente.MAGAZZINIERE.getValore());
 
     String nuovaChiave = utenti.generaChiaveMcp(creato.utente().getId());
     assertTrue(utenti.autenticaChiaveMcp(creato.chiaveMcp()).isEmpty());

@@ -77,6 +77,12 @@ public class UtenteService {
   }
 
   @Transactional(readOnly = true)
+  public List<Utente> elencoBloccati() {
+    return elenco().stream().filter(utente -> !utente.isAccountNonLocked())
+        .toList();
+  }
+
+  @Transactional(readOnly = true)
   public Utente trova(Long id) {
     return utenti.findById(id)
         .orElseThrow(() -> new IllegalArgumentException("Utente non trovato"));
@@ -118,7 +124,8 @@ public class UtenteService {
     }
     byte[] hashRicevuto = hashChiaveMcp(chiave);
     return utente.corrispondeHashChiaveMcp(hashRicevuto)
-        ? Optional.of(utente) : Optional.empty();
+        ? Optional.of(utente)
+        : Optional.empty();
   }
 
   private String generaChiaveMcp(Utente utente) {
@@ -133,7 +140,8 @@ public class UtenteService {
     String segreto = Base64.getUrlEncoder().withoutPadding()
         .encodeToString(segretoCasuale);
     String chiave = "mcp_" + id + "." + segreto;
-    utente.impostaChiaveMcp(id, HexFormat.of().formatHex(hashChiaveMcp(chiave)));
+    utente.impostaChiaveMcp(id,
+        HexFormat.of().formatHex(hashChiaveMcp(chiave)));
     return chiave;
   }
 

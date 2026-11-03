@@ -1,8 +1,10 @@
 package com.epicode.magazzino.mcp;
 
 import com.epicode.magazzino.model.Riassortimento;
+import com.epicode.magazzino.model.Smaltimento;
 import com.epicode.magazzino.service.CatalogoService;
 import com.epicode.magazzino.service.OrdineService;
+import java.math.BigDecimal;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.McpTool.McpAnnotations;
 import org.springframework.ai.mcp.annotation.McpToolParam;
@@ -36,23 +38,17 @@ public class MagazzinoTools {
       Cerca nel catalogo i prodotti il cui codice o nome contiene il testo \
       indicato (maiuscole indifferenti, almeno 2 caratteri). Restituisce al \
       massimo 20 prodotti con prezzo, giacenza e scorta minima; 'trovati' \
-      dice quanti sono in tutto.""", generateOutputSchema = true,
-      annotations = @McpAnnotations(title = "Cerca prodotti",
-          readOnlyHint = true, destructiveHint = false, idempotentHint = true,
-          openWorldHint = false))
+      dice quanti sono in tutto.""", generateOutputSchema = true, annotations = @McpAnnotations(title = "Cerca prodotti", readOnlyHint = true, destructiveHint = false, idempotentHint = true, openWorldHint = false))
   @PreAuthorize("hasAnyRole('UTENTE', 'MAGAZZINIERE')")
-  public ElencoProdotti cercaProdotti(@McpToolParam(
-      description = "Testo da cercare, es. 'viti' oppure 'TAS'") String testo) {
+  public ElencoProdotti cercaProdotti(
+      @McpToolParam(description = "Testo da cercare, es. 'viti' oppure 'TAS'") String testo) {
     return ElencoProdotti.di(catalogo.cerca(testo), MASSIMO_PRODOTTI);
   }
 
   @McpTool(name = "prodotti_sotto_scorta", description = """
       Elenca i prodotti da riassortire: giacenza uguale o inferiore alla \
       scorta minima, dal più scoperto. Usalo per le domande sulle scorte e \
-      prima di proporre un riordino.""", generateOutputSchema = true,
-      annotations = @McpAnnotations(title = "Prodotti sotto scorta",
-          readOnlyHint = true, destructiveHint = false, idempotentHint = true,
-          openWorldHint = false))
+      prima di proporre un riordino.""", generateOutputSchema = true, annotations = @McpAnnotations(title = "Prodotti sotto scorta", readOnlyHint = true, destructiveHint = false, idempotentHint = true, openWorldHint = false))
   @PreAuthorize("hasAnyRole('UTENTE', 'MAGAZZINIERE')")
   public ElencoProdotti prodottiSottoScorta() {
     return ElencoProdotti.di(catalogo.daRiassortire(), MASSIMO_PRODOTTI);
@@ -61,14 +57,10 @@ public class MagazzinoTools {
   @McpTool(name = "dettaglio_ordine", description = """
       Restituisce un ordine dato il suo numero: cliente, stato (CONFERMATO, \
       SPEDITO o ANNULLATO), righe con sconti, spese di spedizione e totale \
-      da pagare. Se l'ordine non esiste restituisce un errore.""",
-      generateOutputSchema = true,
-      annotations = @McpAnnotations(title = "Dettaglio ordine",
-          readOnlyHint = true, destructiveHint = false, idempotentHint = true,
-          openWorldHint = false))
+      da pagare. Se l'ordine non esiste restituisce un errore.""", generateOutputSchema = true, annotations = @McpAnnotations(title = "Dettaglio ordine", readOnlyHint = true, destructiveHint = false, idempotentHint = true, openWorldHint = false))
   @PreAuthorize("hasRole('UTENTE')")
-  public OrdineMcp dettaglioOrdine(@McpToolParam(
-      description = "Numero dell'ordine, es. 3") long numero) {
+  public OrdineMcp dettaglioOrdine(
+      @McpToolParam(description = "Numero dell'ordine, es. 3") long numero) {
     return OrdineMcp.da(ordini.trova(numero));
   }
 
@@ -77,18 +69,52 @@ public class MagazzinoTools {
       CARICO nello storico. MODIFICA I DATI: usalo solo quando l'utente \
       chiede esplicitamente di riassortire. Quantità da 1 a 1000; nota \
       facoltativa fino a 250 caratteri (es. il numero del documento di \
-      trasporto).""", generateOutputSchema = true,
-      annotations = @McpAnnotations(title = "Riassortisci un prodotto",
-          readOnlyHint = false, destructiveHint = false,
-          idempotentHint = false, openWorldHint = false))
+      trasporto).""", generateOutputSchema = true, annotations = @McpAnnotations(title = "Riassortisci un prodotto", readOnlyHint = false, destructiveHint = false, idempotentHint = false, openWorldHint = false))
   @PreAuthorize("hasRole('MAGAZZINIERE')")
   public EsitoRiassortimento riassortisciProdotto(
       @McpToolParam(description = "Codice del prodotto, es. TAS-8") String codice,
       @McpToolParam(description = "Pezzi da aggiungere, da 1 a 1000") int quantita,
-      @McpToolParam(description = "Nota per lo storico, facoltativa",
-          required = false) String nota) {
+      @McpToolParam(description = "Nota per lo storico, facoltativa", required = false) String nota) {
     return EsitoRiassortimento.di(
         catalogo.riassortisci(codice, new Riassortimento(quantita, nota)),
         quantita);
+  }
+
+  @McpTool(name = "crea_prodotto", description = """
+      Censisce un nuovo prodotto con codice univoco, nome, prezzo e scorta \
+      minima. La giacenza iniziale è zero: usa riassortisci_prodotto per \
+      caricare pezzi. Prezzo e scorta minima non negativi; il prezzo viene \
+      arrotondato al centesimo. MODIFICA I DATI: usa solo su richiesta \
+      esplicita dell'utente.""", generateOutputSchema = true, annotations = @McpAnnotations(title = "Censisci un prodotto", readOnlyHint = false, destructiveHint = false, idempotentHint = false, openWorldHint = false))
+  @PreAuthorize("hasRole('MAGAZZINIERE')")
+  public ProdottoMcp creaProdotto(
+      @McpToolParam(description = "Codice univoco del prodotto") String codice,
+      @McpToolParam(description = "Nome del prodotto") String nome,
+      @McpToolParam(description = "Prezzo non negativo, es. 12.35") BigDecimal prezzo,
+      @McpToolParam(description = "Scorta minima non negativa") int scortaMinima) {
+    return ProdottoMcp.da(catalogo.crea(codice, nome, prezzo, scortaMinima));
+  }
+
+  @McpTool(name = "smaltisci_prodotto", description = """
+      Rimuove pezzi dalla giacenza e registra un movimento SMALTIMENTO. \
+      Quantità maggiore di zero e non superiore ai disponibili; nota \
+      facoltativa fino a 250 caratteri. OPERAZIONE DISTRUTTIVA: modifica \
+      le scorte, usa solo su richiesta esplicita dell'utente.""", generateOutputSchema = true, annotations = @McpAnnotations(title = "Smaltisci un prodotto", readOnlyHint = false, destructiveHint = true, idempotentHint = false, openWorldHint = false))
+  @PreAuthorize("hasRole('MAGAZZINIERE')")
+  public EsitoSmaltimento smaltisciProdotto(
+      @McpToolParam(description = "Codice del prodotto") String codice,
+      @McpToolParam(description = "Pezzi da smaltire, da 1 ai disponibili") int quantita,
+      @McpToolParam(description = "Nota per lo storico, facoltativa", required = false) String nota) {
+    return EsitoSmaltimento.di(
+        catalogo.smaltisci(codice, new Smaltimento(quantita, nota)), quantita);
+  }
+
+  @McpTool(name = "storico_movimenti", description = """
+      Legge lo storico completo dei movimenti, dal più recente: data, \
+      codice e nome prodotto, tipo, quantità, nota ed eventuale numero \
+      d'ordine. Non modifica la giacenza.""", generateOutputSchema = true, annotations = @McpAnnotations(title = "Storico movimenti", readOnlyHint = true, destructiveHint = false, idempotentHint = true, openWorldHint = false))
+  @PreAuthorize("hasRole('MAGAZZINIERE')")
+  public ElencoMovimenti storicoMovimenti() {
+    return ElencoMovimenti.di(catalogo.movimenti());
   }
 }

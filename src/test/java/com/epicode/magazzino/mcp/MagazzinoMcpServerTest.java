@@ -4,12 +4,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.epicode.magazzino.model.Prodotto;
 import com.epicode.magazzino.model.Ordine;
+import com.epicode.magazzino.model.Utente;
+import com.epicode.magazzino.model.RuoloUtente;
 import com.epicode.magazzino.repository.OrdineRepository;
+import com.epicode.magazzino.repository.MovimentoRepository;
 import com.epicode.magazzino.repository.ProdottoRepository;
 import com.epicode.magazzino.repository.UtenteRepository;
 import com.epicode.magazzino.service.CatalogoService;
@@ -47,6 +51,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.test.context.support.WithMockUser;
 
 /**
  * Il server MCP provato come lo usa un agente: un client MCP vero, via HTTP,
@@ -70,10 +76,16 @@ class MagazzinoMcpServerTest {
   private CatalogoService catalogo;
 
   @Autowired
+  private MovimentoRepository movimenti;
+
+  @Autowired
   private UtenteRepository utentiRepository;
 
   @Autowired
   private UtenteService utenti;
+
+  @Autowired
+  private AmministrazioneTools amministrazione;
 
   private McpSyncClient client;
   private String chiaveUtente;
@@ -149,15 +161,199 @@ class MagazzinoMcpServerTest {
         .collect(Collectors.toMap(Tool::name, Function.identity()));
 
     assertEquals(Set.of("cerca_prodotti", "prodotti_sotto_scorta",
-        "riassortisci_prodotto"), tool.keySet());
+        "riassortisci_prodotto", "crea_prodotto", "smaltisci_prodotto",
+        "storico_movimenti"), tool.keySet());
     assertEquals("MAGAZZINO", client.getServerInfo().name());
     assertTrue(tool.get("cerca_prodotti").annotations().readOnlyHint());
     assertTrue(tool.get("prodotti_sotto_scorta").annotations().readOnlyHint());
     assertFalse(tool.get("riassortisci_prodotto").annotations().readOnlyHint());
     assertFalse(
         tool.get("riassortisci_prodotto").annotations().destructiveHint());
+    assertFalse(tool.get("crea_prodotto").annotations().readOnlyHint());
+    assertFalse(tool.get("crea_prodotto").annotations().destructiveHint());
+    assertFalse(tool.get("crea_prodotto").annotations().idempotentHint());
+    assertFalse(tool.get("smaltisci_prodotto").annotations().readOnlyHint());
+    assertTrue(tool.get("smaltisci_prodotto").annotations().destructiveHint());
+    assertFalse(tool.get("smaltisci_prodotto").annotations().idempotentHint());
+    assertTrue(tool.get("storico_movimenti").annotations().readOnlyHint());
+    assertTrue(tool.get("storico_movimenti").annotations().idempotentHint());
     assertEquals(List.of("piano-riordino"),
         client.listPrompts().prompts().stream().map(Prompt::name).toList());
+  }
+
+  @ParameterizedTest
+  @CsvSource({"12.345, 12.35", "0.00, 0.00"})
+  void ilCensimentoCreaUnProdottoSenzaGiacenzaEArrotondaIlPrezzo(
+      BigDecimal prezzo, BigDecimal atteso) {
+    collegaCome(chiaveMagazziniere);
+    String codice = "T-MCP-NUOVO";
+    try {
+      CallToolResult risultato = chiama("crea_prodotto",
+          Map.of("codice", codice, "nome", "Nuovo prodotto MCP", "prezzo",
+              prezzo, "scortaMinima", 0));
+
+      assertFalse(Boolean.TRUE.equals(risultato.isError()));
+      Map<?, ?> dati = assertInstanceOf(Map.class,
+          risultato.structuredContent());
+      assertEquals(codice, dati.get("codice"));
+      assertEquals(0, dati.get("disponibili"));
+      Prodotto creato = catalogo.trova(codice);
+      assertEquals(atteso, creato.getPrezzo());
+      assertEquals(0, creato.getScortaMinima());
+      assertEquals(0, creato.getDisponibili());
+
+      CallToolResult duplicato = chiama("crea_prodotto",
+          Map.of("codice", codice, "nome", "Duplicato", "prezzo",
+              new BigDecimal("1.00"), "scortaMinima", 1));
+      assertTrue(duplicato.isError());
+      assertTrue(testo(duplicato).contains("Esiste già un prodotto"));
+      assertEquals("Nuovo prodotto MCP", catalogo.trova(codice).getNome());
+    } finally {
+      prodotti.findByCodice(codice).ifPresent(prodotti::delete);
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"codice", "nome"})
+  void ilCensimentoRifiutaCodiceONomeVuoti(String campo) {
+    collegaCome(chiaveMagazziniere);
+    Map<String, Object> argomenti = new java.util.HashMap<>(
+        Map.of("codice", "T-MCP-INVALIDO", "nome", "Prodotto", "prezzo",
+            new BigDecimal("1.00"), "scortaMinima", 0));
+    argomenti.put(campo, " ");
+    CallToolResult risultato = chiama("crea_prodotto", argomenti);
+
+    assertTrue(risultato.isError());
+    assertTrue(testo(risultato)
+        .contains("Codice e nome del prodotto sono obbligatori"));
+    assertTrue(prodotti.findByCodice("T-MCP-INVALIDO").isEmpty());
+  }
+
+  @ParameterizedTest
+  @CsvSource({"-0.01, 0", "0.00, -1"})
+  void ilCensimentoRifiutaValoriNegativiSenzaCreareProdotti(BigDecimal prezzo,
+      int scortaMinima) {
+    collegaCome(chiaveMagazziniere);
+    CallToolResult risultato = chiama("crea_prodotto",
+        Map.of("codice", "T-MCP-INVALIDO", "nome", "Non creare", "prezzo",
+            prezzo, "scortaMinima", scortaMinima));
+
+    assertTrue(risultato.isError());
+    assertTrue(testo(risultato).contains("non possono essere negativi"));
+    assertTrue(prodotti.findByCodice("T-MCP-INVALIDO").isEmpty());
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {1, 3})
+  void loSmaltimentoRiduceLaGiacenzaERegistraLoStorico(int quantita) {
+    collegaCome(chiaveMagazziniere);
+    String codice = "T-MCP-SMALTIMENTO";
+    Prodotto prodotto = prodotti.save(
+        new Prodotto(codice, "Da smaltire", new BigDecimal("2.00"), 3, 0));
+    long prima = movimenti.count();
+    try {
+      CallToolResult risultato = chiama("smaltisci_prodotto", Map.of("codice",
+          codice, "quantita", quantita, "nota", "  Danneggiati  "));
+
+      assertFalse(Boolean.TRUE.equals(risultato.isError()));
+      Map<?, ?> dati = assertInstanceOf(Map.class,
+          risultato.structuredContent());
+      assertEquals(quantita, dati.get("smaltiti"));
+      assertEquals(3 - quantita, dati.get("disponibili"));
+      assertEquals(3 - quantita, catalogo.trova(codice).getDisponibili());
+      assertEquals(prima + 1, movimenti.count());
+      CallToolResult storico = chiama("storico_movimenti", Map.of());
+      assertFalse(Boolean.TRUE.equals(storico.isError()), testo(storico));
+      Map<?, ?> elenco = assertInstanceOf(Map.class,
+          storico.structuredContent());
+      List<?> righe = assertInstanceOf(List.class, elenco.get("movimenti"));
+      assertEquals(prima + 1, righe.size());
+      Map<?, ?> ultimo = assertInstanceOf(Map.class, righe.getFirst());
+      assertEquals(codice, ultimo.get("codice"));
+      assertEquals("SMALTIMENTO", ultimo.get("tipo"));
+      assertEquals(quantita, ultimo.get("quantita"));
+      assertEquals("Danneggiati", ultimo.get("nota"));
+      assertTrue(ultimo.containsKey("creatoIl"));
+    } finally {
+      movimenti.deleteAll(movimenti.findAll().stream()
+          .filter(m -> m.getProdotto().getId().equals(prodotto.getId()))
+          .toList());
+      prodotti.deleteById(prodotto.getId());
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {0, -1, Integer.MAX_VALUE})
+  void unoSmaltimentoNonValidoNonCambiaGiacenzaNeStorico(int quantita) {
+    collegaCome(chiaveMagazziniere);
+    int prima = catalogo.trova(CODICE).getDisponibili();
+    long numeroMovimenti = movimenti.count();
+    CallToolResult risultato = chiama("smaltisci_prodotto",
+        Map.of("codice", CODICE, "quantita", quantita));
+
+    assertTrue(risultato.isError());
+    assertEquals(prima, catalogo.trova(CODICE).getDisponibili());
+    assertEquals(numeroMovimenti, movimenti.count());
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {250, 251})
+  void loSmaltimentoRispettaIlLimiteDellaNota(int lunghezza) {
+    collegaCome(chiaveMagazziniere);
+    int prima = catalogo.trova(CODICE).getDisponibili();
+    long numeroMovimenti = movimenti.count();
+    CallToolResult risultato = chiama("smaltisci_prodotto",
+        Map.of("codice", CODICE, "quantita", 1, "nota", "a".repeat(lunghezza)));
+
+    assertEquals(lunghezza > 250, Boolean.TRUE.equals(risultato.isError()));
+    assertEquals(prima - (lunghezza == 250 ? 1 : 0),
+        catalogo.trova(CODICE).getDisponibili());
+    assertEquals(numeroMovimenti + (lunghezza == 250 ? 1 : 0),
+        movimenti.count());
+  }
+
+  @Test
+  void smaltireUnProdottoInesistenteRestituisceUnErroreLeggibile() {
+    collegaCome(chiaveMagazziniere);
+    long prima = movimenti.count();
+    CallToolResult risultato = chiama("smaltisci_prodotto",
+        Map.of("codice", "T-MCP-ASSENTE", "quantita", 1));
+
+    assertTrue(risultato.isError());
+    assertTrue(testo(risultato).contains("Prodotto T-MCP-ASSENTE non trovato"));
+    assertEquals(prima, movimenti.count());
+  }
+
+  @Test
+  void loStoricoLeggeAncheCarichiSenzaNotaSenzaModificareIDati() {
+    collegaCome(chiaveMagazziniere);
+    CallToolResult carico = chiama("riassortisci_prodotto",
+        Map.of("codice", CODICE, "quantita", 1));
+    assertFalse(Boolean.TRUE.equals(carico.isError()));
+    long prima = movimenti.count();
+    int giacenza = catalogo.trova(CODICE).getDisponibili();
+
+    CallToolResult risultato = chiama("storico_movimenti", Map.of());
+
+    assertFalse(Boolean.TRUE.equals(risultato.isError()), testo(risultato));
+    Map<?, ?> elenco = assertInstanceOf(Map.class,
+        risultato.structuredContent());
+    List<?> righe = assertInstanceOf(List.class, elenco.get("movimenti"));
+    assertEquals(prima, righe.size());
+    Map<?, ?> ultimo = assertInstanceOf(Map.class, righe.getFirst());
+    assertEquals(CODICE, ultimo.get("codice"));
+    assertEquals("CARICO", ultimo.get("tipo"));
+    assertNull(ultimo.get("nota"));
+    assertNull(ultimo.get("ordineId"));
+    assertEquals(prima, movimenti.count());
+    assertEquals(giacenza, catalogo.trova(CODICE).getDisponibili());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"crea_prodotto", "smaltisci_prodotto",
+      "storico_movimenti"})
+  void userNonPuoInvocareLeNuoveOperazioniMagazziniere(String tool) {
+    assertThrows(McpError.class, () -> chiama(tool, Map.of()));
   }
 
   @Test
@@ -250,22 +446,146 @@ class MagazzinoMcpServerTest {
   }
 
   @Test
-  void adminSiInizializzaSenzaToolNePrompt() {
+  void adminEsponeSoloUtentiBloccatiSenzaPrompt() {
     collegaCome(chiaveAmministratore);
 
     assertEquals("ADMIN", client.getServerInfo().name());
-    assertNull(client.getServerCapabilities().tools());
+    assertNotNull(client.getServerCapabilities().tools());
     assertNull(client.getServerCapabilities().prompts());
-    assertThrows(IllegalStateException.class,
+    List<Tool> disponibili = client.listTools().tools();
+    assertEquals(List.of("utenti_bloccati"),
+        disponibili.stream().map(Tool::name).toList());
+    Tool tool = disponibili.getFirst();
+    assertTrue(tool.annotations().readOnlyHint());
+    assertFalse(tool.annotations().destructiveHint());
+    assertTrue(tool.annotations().idempotentHint());
+    assertFalse(tool.annotations().openWorldHint());
+    assertTrue(assertInstanceOf(Map.class, tool.inputSchema().get("properties"))
+        .isEmpty());
+    Object obbligatori = tool.inputSchema().get("required");
+    assertTrue(obbligatori == null
+        || assertInstanceOf(List.class, obbligatori).isEmpty());
+    assertNotNull(tool.outputSchema());
+    assertEquals(Set.of("utenti", "totale"),
+        assertInstanceOf(Map.class, tool.outputSchema().get("properties"))
+            .keySet());
+    assertThrows(McpError.class,
         () -> chiama("cerca_prodotti", Map.of("testo", "T-MCP")));
     assertThrows(McpError.class, () -> client
         .getPrompt(GetPromptRequest.builder("piano-riordino").build()));
   }
 
+  @Test
+  void adminLeggeTuttiIBloccatiInOrdineSenzaSegretiNeModifiche() {
+    Utente primo = creaAccountMcpBloccato("aaa-admin-mcp",
+        RuoloUtente.AMMINISTRATORE, 3);
+    Utente ultimo = creaAccountMcpBloccato("zzz-admin-mcp",
+        RuoloUtente.MAGAZZINIERE, 4);
+    Utente secondo = creaAccountMcpBloccato("bbb-admin-mcp", RuoloUtente.UTENTE,
+        3);
+    Utente nonBloccato = creaAccountMcpBloccato("ccc-admin-mcp",
+        RuoloUtente.UTENTE, 2);
+    List<Utente> account = List.of(primo, ultimo, secondo, nonBloccato);
+    List<StatoAccount> prima = account.stream().map(StatoAccount::da).toList();
+    try {
+      collegaCome(chiaveAmministratore);
+
+      CallToolResult risultato = chiama("utenti_bloccati", Map.of());
+
+      assertFalse(Boolean.TRUE.equals(risultato.isError()), testo(risultato));
+      Map<?, ?> elenco = assertInstanceOf(Map.class,
+          risultato.structuredContent());
+      assertEquals(Set.of("utenti", "totale"), elenco.keySet());
+      assertEquals(3, elenco.get("totale"));
+      List<?> righe = assertInstanceOf(List.class, elenco.get("utenti"));
+      assertEquals(3, righe.size());
+      List<Utente> attesi = List.of(primo, secondo, ultimo);
+      for (int i = 0; i < attesi.size(); i++) {
+        Utente atteso = attesi.get(i);
+        Map<?, ?> riga = assertInstanceOf(Map.class, righe.get(i));
+        assertEquals(
+            Set.of("id", "username", "nome", "cognome", "ruolo", "errori"),
+            riga.keySet());
+        assertEquals(atteso.getId().longValue(),
+            assertInstanceOf(Number.class, riga.get("id")).longValue());
+        assertEquals(atteso.getUsername(), riga.get("username"));
+        assertEquals("Nome test", riga.get("nome"));
+        assertEquals("Cognome test", riga.get("cognome"));
+        assertEquals(RuoloUtente.daValore(atteso.getRuolo()).name(),
+            riga.get("ruolo"));
+        assertEquals(atteso.getErrori(), riga.get("errori"));
+        assertFalse(testo(risultato).contains(atteso.getPassword()));
+      }
+      assertEquals(prima,
+          account.stream()
+              .map(u -> utentiRepository.findById(u.getId()).orElseThrow())
+              .map(StatoAccount::da).toList());
+
+      utenti.sblocca(primo.getId());
+      Map<?, ?> aggiornato = assertInstanceOf(Map.class,
+          chiama("utenti_bloccati", Map.of()).structuredContent());
+      assertEquals(2, aggiornato.get("totale"));
+      List<?> rimasti = assertInstanceOf(List.class, aggiornato.get("utenti"));
+      assertEquals(List.of("bbb-admin-mcp", "zzz-admin-mcp"), rimasti.stream()
+          .map(r -> assertInstanceOf(Map.class, r).get("username")).toList());
+    } finally {
+      utentiRepository.deleteAll(account);
+    }
+  }
+
+  @Test
+  void adminRiceveUnElencoVuotoQuandoNonCiSonoBlocchi() {
+    collegaCome(chiaveAmministratore);
+    CallToolResult risultato = chiama("utenti_bloccati", Map.of());
+
+    assertFalse(Boolean.TRUE.equals(risultato.isError()), testo(risultato));
+    Map<?, ?> elenco = assertInstanceOf(Map.class,
+        risultato.structuredContent());
+    assertEquals(Set.of("utenti", "totale"), elenco.keySet());
+    assertEquals(List.of(), elenco.get("utenti"));
+    assertEquals(0, elenco.get("totale"));
+  }
+
   @ParameterizedTest
-  @ValueSource(strings = {"tools/list", "tools/call", "prompts/list",
-      "prompts/get"})
-  void adminNonRegistraMetodiPerToolOPrompt(String metodo) throws Exception {
+  @ValueSource(strings = {"USER", "MAGAZZINO"})
+  void iServerOperativiNonEspongonoNeEseguonoUtentiBloccati(String server) {
+    collegaCome(server.equals("USER") ? chiaveUtente : chiaveMagazziniere);
+
+    assertFalse(client.listTools().tools().stream()
+        .anyMatch(tool -> tool.name().equals("utenti_bloccati")));
+    assertThrows(McpError.class, () -> chiama("utenti_bloccati", Map.of()));
+  }
+
+  @Test
+  @WithMockUser(roles = "UTENTE")
+  void ilBeanAmministrativoRifiutaUnUtenteNonAmministratore() {
+    assertThrows(AccessDeniedException.class,
+        () -> amministrazione.utentiBloccati());
+  }
+
+  private Utente creaAccountMcpBloccato(String username, RuoloUtente ruolo,
+      int errori) {
+    Utente utente = utenti.crea(username, "Password1!", "Nome test",
+        "Cognome test", ruolo.getValore()).utente();
+    for (int i = 0; i < errori; i++) {
+      utente.incrementaErrori();
+    }
+    return utentiRepository.save(utente);
+  }
+
+  private record StatoAccount(Long id, String username, String nome,
+      String cognome, int ruolo, int errori, String password,
+      boolean chiaveAttiva) {
+    static StatoAccount da(Utente utente) {
+      return new StatoAccount(utente.getId(), utente.getUsername(),
+          utente.getNome(), utente.getCognome(), utente.getRuolo(),
+          utente.getErrori(), utente.getPassword(), utente.isChiaveMcpAttiva());
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"prompts/list", "prompts/get"})
+  void adminNonRegistraMetodiPerPrompt(String metodo) throws Exception {
     try (HttpClient http = HttpClient.newHttpClient()) {
       HttpRequest inizializzazione = richiestaMcp("admin", chiaveAmministratore)
           .POST(HttpRequest.BodyPublishers.ofString("""
