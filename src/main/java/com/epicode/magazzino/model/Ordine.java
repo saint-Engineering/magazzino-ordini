@@ -18,139 +18,146 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Un ordine di un cliente. Le regole di business stanno qui, non nel controller:
- * - si aggiungono righe solo a un ordine CONFERMATO, e ogni riga preleva dalla giacenza;
- * - lo stesso prodotto aggiunto due volte finisce nella stessa riga;
- * - annullare restituisce i pezzi al magazzino; un ordine spedito non si annulla.
+ * Un ordine di un cliente. Le regole di business stanno qui, non nel
+ * controller: - si aggiungono righe solo a un ordine CONFERMATO, e ogni riga
+ * preleva dalla giacenza; - lo stesso prodotto aggiunto due volte finisce nella
+ * stessa riga; - annullare restituisce i pezzi al magazzino; un ordine spedito
+ * non si annulla.
  */
 @Entity
 @Table(name = "ordini")
 public class Ordine {
 
-    private static final BigDecimal SOGLIA_SPEDIZIONE_GRATUITA = new BigDecimal("150.00");
-    private static final BigDecimal COSTO_SPEDIZIONE = new BigDecimal("9.90");
-    private static final BigDecimal SPEDIZIONE_GRATUITA = BigDecimal.ZERO.setScale(2);
+  private static final BigDecimal SOGLIA_SPEDIZIONE_GRATUITA = new BigDecimal(
+      "150.00");
+  private static final BigDecimal COSTO_SPEDIZIONE = new BigDecimal("9.90");
+  private static final BigDecimal SPEDIZIONE_GRATUITA = BigDecimal.ZERO
+      .setScale(2);
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @Column(nullable = false)
-    private String cliente;
+  @Column(nullable = false)
+  private String cliente;
 
-    @Column(nullable = false)
-    private LocalDateTime creatoIl;
+  @Column(nullable = false)
+  private LocalDateTime creatoIl;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private StatoOrdine stato;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private StatoOrdine stato;
 
-    @Column(length = 13)
-    private String codiceTracking;
+  @Column(length = 13)
+  private String codiceTracking;
 
-    @OneToMany(mappedBy = "ordine", cascade = CascadeType.ALL, orphanRemoval = true,
-            fetch = FetchType.EAGER)
-    private List<RigaOrdine> righe = new ArrayList<>();
+  @OneToMany(mappedBy = "ordine", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+  private List<RigaOrdine> righe = new ArrayList<>();
 
-    protected Ordine() {
-        // per JPA
+  protected Ordine() {
+    // per JPA
+  }
+
+  public Ordine(String cliente, LocalDateTime creatoIl) {
+    if (cliente == null || cliente.isBlank()) {
+      throw new RichiestaNonValidaException("Il cliente è obbligatorio");
     }
+    this.cliente = cliente.strip();
+    this.creatoIl = creatoIl;
+    this.stato = StatoOrdine.CONFERMATO;
+  }
 
-    public Ordine(String cliente, LocalDateTime creatoIl) {
-        if (cliente == null || cliente.isBlank()) {
-            throw new RichiestaNonValidaException("Il cliente è obbligatorio");
-        }
-        this.cliente = cliente.strip();
-        this.creatoIl = creatoIl;
-        this.stato = StatoOrdine.CONFERMATO;
+  public void aggiungiRiga(Prodotto prodotto, int quantita) {
+    if (stato != StatoOrdine.CONFERMATO) {
+      throw new OperazioneNonConsentitaException(
+          "Non si aggiungono righe a un ordine " + stato);
     }
+    prodotto.preleva(quantita);
+    for (RigaOrdine riga : righe) {
+      if (riga.getProdotto().getCodice().equals(prodotto.getCodice())) {
+        riga.aumenta(quantita);
+        return;
+      }
+    }
+    righe.add(new RigaOrdine(this, prodotto, quantita));
+  }
 
-    public void aggiungiRiga(Prodotto prodotto, int quantita) {
-        if (stato != StatoOrdine.CONFERMATO) {
-            throw new OperazioneNonConsentitaException("Non si aggiungono righe a un ordine " + stato);
-        }
-        prodotto.preleva(quantita);
-        for (RigaOrdine riga : righe) {
-            if (riga.getProdotto().getCodice().equals(prodotto.getCodice())) {
-                riga.aumenta(quantita);
-                return;
-            }
-        }
-        righe.add(new RigaOrdine(this, prodotto, quantita));
+  /** Totale merce, somma dei subtotali già scontati. */
+  public BigDecimal totale() {
+    BigDecimal totale = BigDecimal.ZERO.setScale(2);
+    for (RigaOrdine riga : righe) {
+      totale = totale.add(riga.subtotale());
     }
+    return totale;
+  }
 
-    /** Totale merce, somma dei subtotali già scontati. */
-    public BigDecimal totale() {
-        BigDecimal totale = BigDecimal.ZERO.setScale(2);
-        for (RigaOrdine riga : righe) {
-            totale = totale.add(riga.subtotale());
-        }
-        return totale;
+  /**
+   * Restituisce il costo di spedizione in base al totale della merce scontata.
+   */
+  public BigDecimal spedizione() {
+    if (totale().compareTo(SOGLIA_SPEDIZIONE_GRATUITA) >= 0) {
+      return SPEDIZIONE_GRATUITA;
     }
+    return COSTO_SPEDIZIONE;
+  }
 
-    /** Restituisce il costo di spedizione in base al totale della merce scontata. */
-    public BigDecimal spedizione() {
-        if (totale().compareTo(SOGLIA_SPEDIZIONE_GRATUITA) >= 0) {
-            return SPEDIZIONE_GRATUITA;
-        }
-        return COSTO_SPEDIZIONE;
-    }
+  public BigDecimal speseSpedizione() {
+    return spedizione();
+  }
 
-    public BigDecimal speseSpedizione() {
-        return spedizione();
-    }
+  /** Somma il totale della merce e il costo di spedizione. */
+  public BigDecimal totaleDaPagare() {
+    return totale().add(spedizione());
+  }
 
-    /** Somma il totale della merce e il costo di spedizione. */
-    public BigDecimal totaleDaPagare() {
-        return totale().add(spedizione());
+  public void setCodiceTracking(String codiceTracking) {
+    if (stato != StatoOrdine.CONFERMATO) {
+      throw new OperazioneNonConsentitaException(
+          "Si spedisce solo un ordine confermato");
     }
+    if (codiceTracking == null || !codiceTracking.matches("IT[0-9]{9}IT")) {
+      throw new RichiestaNonValidaException(
+          "Il codice di tracking deve avere il formato IT123456789IT");
+    }
+    this.codiceTracking = codiceTracking;
+    stato = StatoOrdine.SPEDITO;
+  }
 
-    public void setCodiceTracking(String codiceTracking) {
-        if (stato != StatoOrdine.CONFERMATO) {
-            throw new OperazioneNonConsentitaException("Si spedisce solo un ordine confermato");
-        }
-        if (codiceTracking == null || !codiceTracking.matches("IT[0-9]{9}IT")) {
-            throw new RichiestaNonValidaException(
-                    "Il codice di tracking deve avere il formato IT123456789IT");
-        }
-        this.codiceTracking = codiceTracking;
-        stato = StatoOrdine.SPEDITO;
+  public void annulla() {
+    if (stato == StatoOrdine.SPEDITO) {
+      throw new OperazioneNonConsentitaException(
+          "Un ordine spedito non si può annullare");
     }
+    if (stato == StatoOrdine.ANNULLATO) {
+      throw new OperazioneNonConsentitaException("L'ordine è già annullato");
+    }
+    for (RigaOrdine riga : righe) {
+      riga.getProdotto().riassortisci(riga.getQuantita());
+    }
+    stato = StatoOrdine.ANNULLATO;
+  }
 
-    public void annulla() {
-        if (stato == StatoOrdine.SPEDITO) {
-            throw new OperazioneNonConsentitaException("Un ordine spedito non si può annullare");
-        }
-        if (stato == StatoOrdine.ANNULLATO) {
-            throw new OperazioneNonConsentitaException("L'ordine è già annullato");
-        }
-        for (RigaOrdine riga : righe) {
-            riga.getProdotto().riassortisci(riga.getQuantita());
-        }
-        stato = StatoOrdine.ANNULLATO;
-    }
+  public Long getId() {
+    return id;
+  }
 
-    public Long getId() {
-        return id;
-    }
+  public String getCliente() {
+    return cliente;
+  }
 
-    public String getCliente() {
-        return cliente;
-    }
+  public LocalDateTime getCreatoIl() {
+    return creatoIl;
+  }
 
-    public LocalDateTime getCreatoIl() {
-        return creatoIl;
-    }
+  public StatoOrdine getStato() {
+    return stato;
+  }
 
-    public StatoOrdine getStato() {
-        return stato;
-    }
+  public String getCodiceTracking() {
+    return codiceTracking;
+  }
 
-    public String getCodiceTracking() {
-        return codiceTracking;
-    }
-
-    public List<RigaOrdine> getRighe() {
-        return Collections.unmodifiableList(righe);
-    }
+  public List<RigaOrdine> getRighe() {
+    return Collections.unmodifiableList(righe);
+  }
 }

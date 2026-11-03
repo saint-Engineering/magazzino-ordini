@@ -36,6 +36,12 @@ public class UtenteController {
     return "utenti";
   }
 
+  @GetMapping("/bloccati")
+  public String elencoBloccati(Model model) {
+    model.addAttribute("utenti", utenti.elencoBloccati());
+    return "utenti-bloccati";
+  }
+
   @GetMapping("/nuovo")
   public String nuovo(Model model) {
     model.addAttribute("form", new UtenteForm());
@@ -109,6 +115,13 @@ public class UtenteController {
     return "redirect:/utenti";
   }
 
+  @PostMapping("/bloccati/{id}/sblocca")
+  public String sbloccaBloccato(@PathVariable Long id,
+      RedirectAttributes redirect) {
+    sblocca(id, redirect);
+    return "redirect:/utenti/bloccati";
+  }
+
   @PostMapping("/{id}/chiave-mcp")
   public ResponseEntity<byte[]> generaChiaveMcp(@PathVariable Long id) {
     return fileChiave(id, utenti.generaChiaveMcp(id));
@@ -134,7 +147,8 @@ public class UtenteController {
     return ResponseEntity.ok()
         .contentType(new MediaType("text", "plain", StandardCharsets.UTF_8))
         .cacheControl(CacheControl.noStore())
-        .header(HttpHeaders.PRAGMA, "no-cache")
+        .header(HttpHeaders.PRAGMA,
+            "no-cache")
         .header(HttpHeaders.CONTENT_DISPOSITION,
             ContentDisposition.attachment()
                 .filename("chiave-mcp-utente-" + id + ".txt",

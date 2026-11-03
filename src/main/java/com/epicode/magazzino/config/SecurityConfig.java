@@ -44,8 +44,8 @@ public class SecurityConfig {
             .hasRole("MAGAZZINIERE")
             .requestMatchers("/", "/prodotti/**", "/movimenti/**")
             .hasAnyRole("UTENTE", "MAGAZZINIERE")
-            .requestMatchers("/ordini/**", "/report/**").hasRole("UTENTE")
-            .anyRequest().denyAll())
+            .requestMatchers("/ordini/**", "/report/**", "/scorte")
+            .hasRole("UTENTE").anyRequest().denyAll())
         .formLogin(
             login -> login.loginPage("/login").loginProcessingUrl("/login")
                 .successHandler((richiesta, risposta, autenticazione) -> {

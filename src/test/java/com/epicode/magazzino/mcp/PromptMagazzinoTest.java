@@ -58,29 +58,25 @@ class PromptMagazzinoTest {
         risultato.messages().get(0).content());
     assertTrue(contenuto.text().contains(copertura + " volte"));
     assertTrue(contenuto.text().contains("prodotti_sotto_scorta"));
-    assertTrue(contenuto.text()
-        .contains("Non chiamare riassortisci_prodotto"));
+    assertTrue(contenuto.text().contains("Non chiamare riassortisci_prodotto"));
   }
 
   @Test
   void coperturaFuoriIntervalloVieneRifiutata() {
-    assertThrows(IllegalArgumentException.class,
-        () -> prompt.pianoRiordino(0));
-    assertThrows(IllegalArgumentException.class,
-        () -> prompt.pianoRiordino(6));
+    assertThrows(IllegalArgumentException.class, () -> prompt.pianoRiordino(0));
+    assertThrows(IllegalArgumentException.class, () -> prompt.pianoRiordino(6));
   }
 
   private String testoPrompt(Integer copertura) {
     return ((TextContent) prompt.pianoRiordino(copertura).messages().get(0)
-      .content()).text();
+        .content()).text();
   }
 
   @ParameterizedTest
   @ValueSource(ints = {Integer.MIN_VALUE, 0, 6, Integer.MAX_VALUE})
   void fuoriDaUnoACinqueRifiutaLaCopertura(int copertura) {
     IllegalArgumentException errore = assertThrows(
-        IllegalArgumentException.class,
-        () -> prompt.pianoRiordino(copertura));
+        IllegalArgumentException.class, () -> prompt.pianoRiordino(copertura));
 
     assertEquals("La copertura va da 1 a 5", errore.getMessage());
   }
